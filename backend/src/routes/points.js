@@ -1,0 +1,90 @@
+const router = require('express').Router();
+const db = require('../db');
+const { auth, parentOnly } = require('../middleware/auth');
+const { checkBadge, checkJobBadges, checkStreakBadges } = require('../services/badges');
+const { sendNotification } = require('../services/notify');
+
+router.use(auth);
+
+// Mini-job list
+router.get('/jobs', (_req, res) => {
+  res.json(db.prepare('SELECT * FROM mini_jobs WHERE active=1 ORDER BY name').all());
+});
+
+router.post('/jobs', parentOnly, (req, res) => {
+  const { name, points, recurrence } = req.body;
+  const r = db.prepare('INSERT INTO mini_jobs (name,points,recurrence) VALUES (?,?,?)').run(name, points, recurrence || 'manual');
+  res.json({ id: r.lastInsertRowid });
+});
+
+router.patch('/jobs/:id', parentOnly, (req, res) => {
+  const { name, points, recurrence, active } = req.body;
+  const fields = {};
+  if (name !== undefined) fields.name = name;
+  if (points !== undefined) fields.points = points;
+  if (recurrence !== undefined) fields.recurrence = recurrence;
+  if (active !== undefined) fields.active = active ? 1 : 0;
+  const sets = Object.keys(fields).map(k => `${k}=?`).join(',');
+  if (sets) db.prepare(`UPDATE mini_jobs SET ${sets} WHERE id=?`).run(...Object.values(fields), Number(req.params.id));
+  res.json({ ok: true });
+});
+
+router.delete('/jobs/:id', parentOnly, (req, res) => {
+  db.prepare('UPDATE mini_jobs SET active=0 WHERE id=?').run(Number(req.params.id));
+  res.json({ ok: true });
+});
+
+// Award points (parent)
+router.post('/award', parentOnly, (req, res) => {
+  const { user_id, delta, description, mini_job_id } = req.body;
+  const uid = Number(user_id);
+
+  db.prepare('UPDATE points SET balance=balance+? WHERE user_id=?').run(delta, uid);
+  db.prepare(
+    'INSERT INTO point_events (user_id,delta,description,mini_job_id) VALUES (?,?,?,?)'
+  ).run(uid, delta, description, mini_job_id || null);
+
+  // Update streak
+  if (mini_job_id) {
+    const week = getISOWeek();
+    const p = db.prepare('SELECT last_job_week, streak_weeks FROM points WHERE user_id=?').get(uid);
+    const lastWeek = getISOWeek(-1);
+    let streak = p.streak_weeks;
+    if (p.last_job_week === week) {
+      // already counted this week
+    } else if (p.last_job_week === lastWeek) {
+      streak += 1;
+    } else {
+      streak = 1;
+    }
+    db.prepare('UPDATE points SET last_job_week=?, streak_weeks=? WHERE user_id=?').run(week, streak, uid);
+    checkStreakBadges(uid);
+    checkJobBadges(uid);
+  }
+
+  sendNotification(uid, 'points_received', { delta, description });
+  res.json({ ok: true });
+});
+
+// Child's point history
+router.get('/:id', (req, res) => {
+  const uid = Number(req.params.id);
+  if (req.user.role !== 'parent' && req.user.id !== uid) return res.status(403).json({ error: 'Forbidden' });
+  const summary = db.prepare('SELECT balance, streak_weeks FROM points WHERE user_id=?').get(uid);
+  const events = db.prepare(`
+    SELECT pe.*, mj.name as job_name FROM point_events pe
+    LEFT JOIN mini_jobs mj ON pe.mini_job_id=mj.id
+    WHERE pe.user_id=? ORDER BY pe.created_at DESC
+  `).all(uid);
+  res.json({ summary, events });
+});
+
+function getISOWeek(offsetWeeks = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetWeeks * 7);
+  const jan4 = new Date(d.getFullYear(), 0, 4);
+  const week = Math.ceil(((d - jan4) / 86400000 + jan4.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+module.exports = router;
