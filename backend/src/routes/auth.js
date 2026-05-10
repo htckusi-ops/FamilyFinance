@@ -8,7 +8,7 @@ const SECRET = process.env.JWT_SECRET || 'dev-secret';
 // Parent login with password
 router.post('/login', (req, res) => {
   const { name, password } = req.body;
-  const user = db.prepare('SELECT * FROM users WHERE name = ? AND role = ?').get(name, 'parent');
+  const user = db.prepare('SELECT * FROM users WHERE name = ? COLLATE NOCASE AND role = ?').get(name, 'parent');
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
