@@ -18,7 +18,7 @@ export default function PointsPage({ childId }) {
   const [deductModal, setDeductModal] = useState(false);
   const [convertModal, setConvertModal] = useState(null); // 'points_to_chf' | 'chf_to_points'
   const [convertAmount, setConvertAmount] = useState('');
-  const [newJob, setNewJob] = useState({ name: '', points: '', recurrence: 'manual', job_type: 'extra' });
+  const [newJob, setNewJob] = useState({ name: '', points: '', recurrence: 'manual', job_type: 'extra', image: '' });
   const [freeAward, setFreeAward] = useState({ delta: '', description: '' });
   const [deduct, setDeduct] = useState({ points: '5', reason: '' });
 
@@ -38,6 +38,7 @@ export default function PointsPage({ childId }) {
 
   useEffect(() => {
     const uid = selectedChild || childId;
+    setHistory(null); // veraltete Daten sofort ausblenden beim Kind-Wechsel
     if (uid) api.get(`/points/${uid}`).then(r => setHistory(r.data)).catch(() => {});
   }, [selectedChild, childId]);
 
@@ -101,10 +102,10 @@ export default function PointsPage({ childId }) {
   }
 
   async function addJob() {
-    const pts = newJob.job_type === 'duty' ? 0 : Number(newJob.points);
-    await api.post('/points/jobs', { ...newJob, points: pts });
+    const pts = newJob.job_type === 'duty' ? Number(newJob.points) || 0 : Number(newJob.points);
+    await api.post('/points/jobs', { ...newJob, points: pts, image: newJob.image || null });
     toast('Job gespeichert!', 'success');
-    setNewJob({ name: '', points: '', recurrence: 'manual', job_type: 'extra' });
+    setNewJob({ name: '', points: '', recurrence: 'manual', job_type: 'extra', image: '' });
     setJobModal(false);
     api.get('/points/jobs').then(r => setJobs(r.data));
   }
@@ -119,15 +120,21 @@ export default function PointsPage({ childId }) {
     return (
       <div className="flex flex-col gap-2">
         {items.map(job => (
-          <div key={job.id} className="flex justify-between items-center"
-            style={{ background: isDuty ? '#f0fff4' : '#f8faff', padding: '10px 14px', borderRadius: 12, borderLeft: `3px solid ${isDuty ? 'var(--success)' : 'var(--primary)'}` }}>
-            <div>
-              <span className="font-semibold">{job.name}</span>
-              <span className="text-muted text-sm ml-2">
-                ({job.recurrence === 'manual' ? 'manuell' : job.recurrence === 'daily' ? 'täglich' : 'wöchentlich'})
-              </span>
+          <div key={job.id} className="flex items-center gap-3"
+            style={{ background: isDuty ? '#f0fff4' : '#f8faff', padding: '10px 12px', borderRadius: 14, borderLeft: `3px solid ${isDuty ? 'var(--success)' : 'var(--primary)'}` }}>
+            {/* Emoji/Bild */}
+            <div style={{ fontSize: '1.8rem', minWidth: 36, textAlign: 'center', lineHeight: 1 }}>
+              {job.image || (isDuty ? '🏠' : '⭐')}
             </div>
-            <div className="flex items-center gap-2">
+            {/* Name + Wiederholung */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="font-semibold" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{job.name}</div>
+              <div className="text-muted text-sm">
+                {job.recurrence === 'daily' ? 'täglich' : job.recurrence === 'weekly' ? 'wöchentlich' : 'manuell'}
+              </div>
+            </div>
+            {/* Punkte-Tag + Aktions-Buttons */}
+            <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
               {isDuty && job.points === 0
                 ? <span className="tag tag-green">Pflicht</span>
                 : <span className="tag tag-blue">+{job.points} ⭐</span>
@@ -136,7 +143,7 @@ export default function PointsPage({ childId }) {
                 <>
                   <button
                     className={isDuty && job.points === 0 ? 'btn-ghost' : 'btn-primary'}
-                    style={{ padding: '6px 12px', ...(isDuty && job.points === 0 ? { borderColor: 'var(--success)', color: 'var(--success)' } : {}) }}
+                    style={{ padding: '6px 14px', fontSize: '1rem', ...(isDuty && job.points === 0 ? { borderColor: 'var(--success)', color: 'var(--success)' } : {}) }}
                     onClick={() => awardJob(job)}>
                     ✓
                   </button>
@@ -256,7 +263,7 @@ export default function PointsPage({ childId }) {
         </div>
       )}
 
-      <Modal open={jobModal} title={`Neuer ${newJob.job_type === 'duty' ? 'Haushaltspflicht' : 'Extra-Job'}`} onClose={() => setJobModal(false)}>
+      <Modal open={jobModal} title={`${newJob.job_type === 'duty' ? '🏠 Haushaltspflicht' : '⭐ Extra-Job'} hinzufügen`} onClose={() => { setJobModal(false); setNewJob({ name: '', points: '', recurrence: 'manual', job_type: 'extra', image: '' }); }}>
         <div className="flex flex-col gap-3">
           <div className="flex gap-2">
             {['duty', 'extra'].map(t => (
@@ -266,12 +273,27 @@ export default function PointsPage({ childId }) {
               </button>
             ))}
           </div>
-          <input placeholder="Name (z.B. Zimmer aufräumen)" value={newJob.name}
+
+          {/* Emoji-Vorschau + Eingabe */}
+          <div className="flex items-center gap-3">
+            <div style={{ fontSize: '2.8rem', minWidth: 56, textAlign: 'center', background: '#f8faff', borderRadius: 14, padding: '8px 0' }}>
+              {newJob.image || (newJob.job_type === 'duty' ? '🏠' : '⭐')}
+            </div>
+            <input
+              placeholder="Emoji eingeben (z.B. 🚗)"
+              value={newJob.image}
+              onChange={e => setNewJob(j => ({ ...j, image: e.target.value }))}
+              style={{ flex: 1, fontSize: '1.4rem' }}
+              maxLength={4}
+            />
+          </div>
+
+          <input placeholder="Name (z.B. Auto waschen)" value={newJob.name}
             onChange={e => setNewJob(j => ({ ...j, name: e.target.value }))} />
-          <input type="number" placeholder={newJob.job_type === 'duty' ? 'Punkte (0 = nur bestätigen)' : 'Punkte'} value={newJob.points}
+          <input type="number" placeholder={newJob.job_type === 'duty' ? 'Punkte (0 = nur bestätigen)' : 'Punkte (z.B. 10)'} value={newJob.points}
             onChange={e => setNewJob(j => ({ ...j, points: e.target.value }))} />
           <select value={newJob.recurrence} onChange={e => setNewJob(j => ({ ...j, recurrence: e.target.value }))}>
-            <option value="manual">Manuell</option>
+            <option value="manual">Manuell (bei Bedarf)</option>
             <option value="daily">Täglich</option>
             <option value="weekly">Wöchentlich</option>
           </select>

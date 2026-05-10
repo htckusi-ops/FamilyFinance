@@ -196,10 +196,43 @@ function migrate() {
   // Live migrations for existing databases
   try { db.exec('ALTER TABLE mini_jobs ADD COLUMN job_type TEXT DEFAULT "extra"'); } catch {}
   try { db.exec('ALTER TABLE users ADD COLUMN age_group TEXT DEFAULT "school"'); } catch {}
+  try { db.exec('ALTER TABLE mini_jobs ADD COLUMN image TEXT'); } catch {}
 
   seedBadges();
   seedDefaultAdmin();
   seedDefaultSettings();
+  seedDefaultJobs();
+}
+
+function seedDefaultJobs() {
+  const count = db.prepare('SELECT COUNT(*) as c FROM mini_jobs').get().c;
+  if (count > 0) return; // nur bei frischer DB
+
+  const duties = [
+    { name: 'Bett machen',           points: 0,  recurrence: 'daily',  image: '🛏️' },
+    { name: 'Zimmer aufräumen',       points: 0,  recurrence: 'weekly', image: '🧹' },
+    { name: 'Tisch decken / abräumen',points: 0,  recurrence: 'daily',  image: '🍽️' },
+    { name: 'Hausaufgaben erledigen', points: 0,  recurrence: 'daily',  image: '📚' },
+    { name: 'Zähne putzen',           points: 0,  recurrence: 'daily',  image: '🦷' },
+    { name: 'Wäsche zusammenlegen',   points: 0,  recurrence: 'weekly', image: '👕' },
+    { name: 'Tier füttern',           points: 0,  recurrence: 'daily',  image: '🐾' },
+  ];
+  const extras = [
+    { name: 'Auto waschen',           points: 15, recurrence: 'manual', image: '🚗' },
+    { name: 'Einkaufen helfen',        points: 10, recurrence: 'manual', image: '🛒' },
+    { name: 'Garten helfen',           points: 10, recurrence: 'manual', image: '🌿' },
+    { name: 'Fenster putzen',          points: 12, recurrence: 'manual', image: '🪟' },
+    { name: 'Keller aufräumen',        points: 15, recurrence: 'manual', image: '📦' },
+    { name: 'Badezimmer putzen',       points: 12, recurrence: 'manual', image: '🧽' },
+    { name: 'Kochen helfen',           points: 8,  recurrence: 'manual', image: '🍳' },
+    { name: 'Geschwister betreuen',    points: 10, recurrence: 'manual', image: '👶' },
+    { name: 'Schnee schaufeln',        points: 15, recurrence: 'manual', image: '❄️' },
+    { name: 'Rasenmähen',              points: 15, recurrence: 'manual', image: '🌱' },
+  ];
+
+  const ins = db.prepare('INSERT INTO mini_jobs (name,points,recurrence,job_type,image) VALUES (?,?,?,?,?)');
+  for (const j of duties) ins.run(j.name, j.points, j.recurrence, 'duty', j.image);
+  for (const j of extras) ins.run(j.name, j.points, j.recurrence, 'extra', j.image);
 }
 
 function seedDefaultSettings() {

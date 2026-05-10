@@ -14,22 +14,23 @@ router.get('/jobs', (_req, res) => {
 });
 
 router.post('/jobs', parentOnly, (req, res) => {
-  const { name, points, recurrence, job_type } = req.body;
+  const { name, points, recurrence, job_type, image } = req.body;
   const type = job_type || 'extra';
   const r = db.prepare(
-    'INSERT INTO mini_jobs (name,points,recurrence,job_type) VALUES (?,?,?,?)'
-  ).run(name, Number(points) || 0, recurrence || 'manual', type);
+    'INSERT INTO mini_jobs (name,points,recurrence,job_type,image) VALUES (?,?,?,?,?)'
+  ).run(name, Number(points) || 0, recurrence || 'manual', type, image || null);
   res.json({ id: r.lastInsertRowid });
 });
 
 router.patch('/jobs/:id', parentOnly, (req, res) => {
-  const { name, points, recurrence, active, job_type } = req.body;
+  const { name, points, recurrence, active, job_type, image } = req.body;
   const fields = {};
   if (name !== undefined) fields.name = name;
   if (points !== undefined) fields.points = points;
   if (recurrence !== undefined) fields.recurrence = recurrence;
   if (active !== undefined) fields.active = active ? 1 : 0;
   if (job_type !== undefined) fields.job_type = job_type;
+  if (image !== undefined) fields.image = image;
   const sets = Object.keys(fields).map(k => `${k}=?`).join(',');
   if (sets) db.prepare(`UPDATE mini_jobs SET ${sets} WHERE id=?`).run(...Object.values(fields), Number(req.params.id));
   res.json({ ok: true });

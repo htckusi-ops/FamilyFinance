@@ -141,11 +141,12 @@ export default function ParentDashboard() {
         <Modal open title={`Punkte für ${quickAward.name}`} onClose={() => setQuickAward(null)}>
           <h3 className="font-semibold mb-3">Mini-Job auswählen</h3>
           <div className="flex flex-col gap-2 mb-4">
-            {jobs.map(job => (
+            {jobs.filter(j => j.job_type === 'extra' || j.points > 0).map(job => (
               <button key={job.id} onClick={() => awardJob(quickAward.id, job)}
                 className="flex justify-between items-center"
-                style={{ background: '#f0f7ff', padding: '12px 16px', borderRadius: 12, textAlign: 'left', border: 'none' }}>
-                <span className="font-semibold">{job.name}</span>
+                style={{ background: job.job_type === 'duty' ? '#f0fff4' : '#f0f7ff', padding: '12px 16px', borderRadius: 12, textAlign: 'left', border: 'none', gap: 10 }}>
+                <span style={{ fontSize: '1.5rem' }}>{job.image || (job.job_type === 'duty' ? '🏠' : '⭐')}</span>
+                <span className="font-semibold" style={{ flex: 1 }}>{job.name}</span>
                 <span className="tag tag-blue">+{job.points} ⭐</span>
               </button>
             ))}
