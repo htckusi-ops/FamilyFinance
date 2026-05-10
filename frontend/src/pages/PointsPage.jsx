@@ -16,6 +16,8 @@ export default function PointsPage({ childId }) {
   const [jobModal, setJobModal] = useState(false);
   const [awardModal, setAwardModal] = useState(false);
   const [deductModal, setDeductModal] = useState(false);
+  const [convertModal, setConvertModal] = useState(null); // 'points_to_chf' | 'chf_to_points'
+  const [convertAmount, setConvertAmount] = useState('');
   const [newJob, setNewJob] = useState({ name: '', points: '', recurrence: 'manual', job_type: 'extra' });
   const [freeAward, setFreeAward] = useState({ delta: '', description: '' });
   const [deduct, setDeduct] = useState({ points: '5', reason: '' });
@@ -52,6 +54,27 @@ export default function PointsPage({ childId }) {
       api.get(`/points/${uid}`).then(r => setHistory(r.data));
     } else {
       toast(`✅ ${job.name} erledigt – danke!`, 'success');
+    }
+  }
+
+  async function doConvert() {
+    const uid = selectedChild || childId;
+    const pts = Number(convertAmount);
+    if (!pts || pts <= 0) return toast('Bitte Punkte eingeben', 'error');
+    try {
+      const r = await api.post('/points/convert', { user_id: uid, direction: convertModal, points: pts });
+      const rate = parseFloat(settings.point_value_chf || '0.10');
+      if (convertModal === 'points_to_chf') {
+        toast(`${pts} Punkte → CHF ${(pts * rate).toFixed(2)} gutgeschrieben! 💰`, 'success');
+      } else {
+        toast(`CHF ${(pts * rate).toFixed(2)} → ${pts} Punkte gutgeschrieben! ⭐`, 'success');
+      }
+      setConvertModal(null);
+      setConvertAmount('');
+      const uid2 = selectedChild || childId;
+      api.get(`/points/${uid2}`).then(r => setHistory(r.data));
+    } catch (err) {
+      toast(err.response?.data?.error || 'Fehler beim Umtausch', 'error');
     }
   }
 
@@ -149,6 +172,11 @@ export default function PointsPage({ childId }) {
                 {history.summary?.balance || 0}
               </div>
               <div className="text-muted">Punkte Guthaben</div>
+              {settings.point_value_chf && (
+                <div className="text-sm text-muted mt-1">
+                  ≈ CHF {((history.summary?.balance || 0) * parseFloat(settings.point_value_chf)).toFixed(2)}
+                </div>
+              )}
             </div>
             {showStreak && (history.summary?.streak_weeks || 0) > 0 && (
               <div className="text-center">
@@ -158,6 +186,18 @@ export default function PointsPage({ childId }) {
               </div>
             )}
           </div>
+          {isParent && (selectedChild || childId) && (
+            <div className="flex gap-2 mt-3">
+              <button className="w-full" style={{ background: '#f0fff4', border: '1.5px solid var(--success)', color: 'var(--success)', borderRadius: 12, padding: '9px', fontWeight: 700, fontSize: '0.85rem' }}
+                onClick={() => setConvertModal('points_to_chf')}>
+                ⭐ → CHF
+              </button>
+              <button className="w-full" style={{ background: '#f0f4ff', border: '1.5px solid var(--primary)', color: 'var(--primary)', borderRadius: 12, padding: '9px', fontWeight: 700, fontSize: '0.85rem' }}
+                onClick={() => setConvertModal('chf_to_points')}>
+                CHF → ⭐
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -237,6 +277,46 @@ export default function PointsPage({ childId }) {
           </select>
           <button className="btn-primary w-full" onClick={addJob}>Speichern</button>
         </div>
+      </Modal>
+
+      <Modal open={!!convertModal}
+        title={convertModal === 'points_to_chf' ? '⭐ Punkte → CHF' : '💰 CHF → Punkte'}
+        onClose={() => { setConvertModal(null); setConvertAmount(''); }}>
+        {convertModal && (() => {
+          const rate = parseFloat(settings.point_value_chf || '0.10');
+          const pts = Number(convertAmount) || 0;
+          const chf = Math.round(pts * rate * 100) / 100;
+          return (
+            <div className="flex flex-col gap-3">
+              <div style={{ background: '#f8faff', borderRadius: 10, padding: '10px 14px', fontSize: '0.85rem' }}>
+                Kurs: <strong>1 Punkt = CHF {rate.toFixed(2)}</strong>
+              </div>
+              <div>
+                <label className="text-sm font-semibold mb-1" style={{ display: 'block' }}>
+                  {convertModal === 'points_to_chf' ? 'Punkte einlösen' : 'Punkte kaufen'}
+                </label>
+                <input type="number" min="1" placeholder="Anzahl Punkte"
+                  value={convertAmount} onChange={e => setConvertAmount(e.target.value)} autoFocus />
+              </div>
+              {pts > 0 && (
+                <div style={{ background: convertModal === 'points_to_chf' ? '#f0fff4' : '#f0f4ff', borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
+                  {convertModal === 'points_to_chf' ? (
+                    <><span style={{ fontSize: '1.1rem' }}>⭐ {pts} Punkte</span>
+                    <span style={{ margin: '0 10px', color: 'var(--muted)' }}>→</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)' }}>CHF {chf.toFixed(2)}</span></>
+                  ) : (
+                    <><span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary)' }}>CHF {chf.toFixed(2)}</span>
+                    <span style={{ margin: '0 10px', color: 'var(--muted)' }}>→</span>
+                    <span style={{ fontSize: '1.1rem' }}>⭐ {pts} Punkte</span></>
+                  )}
+                </div>
+              )}
+              <button className="btn-primary w-full" onClick={doConvert} disabled={!pts}>
+                Umtauschen ✓
+              </button>
+            </div>
+          );
+        })()}
       </Modal>
 
       <Modal open={deductModal} title="⚠️ Punkte abziehen" onClose={() => setDeductModal(false)}>

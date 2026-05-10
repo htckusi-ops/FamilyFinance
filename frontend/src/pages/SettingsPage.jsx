@@ -154,6 +154,27 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Point value */}
+      <div className="card mb-4">
+        <h2 className="font-bold mb-2">💱 Punkte-Wechselkurs</h2>
+        <p className="text-sm text-muted mb-3">Wie viel ist 1 Punkt in CHF wert? (Basis für Punkte ↔ CHF Umtausch)</p>
+        <div className="flex items-center gap-3">
+          <span className="font-semibold text-sm" style={{ whiteSpace: 'nowrap' }}>1 Punkt =</span>
+          <input type="number" step="0.01" min="0.01"
+            value={famSettings.point_value_chf || '0.10'}
+            onChange={e => setFamSettings(s => ({ ...s, point_value_chf: e.target.value }))}
+            style={{ maxWidth: 100 }} />
+          <span className="font-semibold text-sm">CHF</span>
+          <button className="btn-primary" style={{ padding: '8px 16px' }}
+            onClick={() => saveFamSetting('point_value_chf', famSettings.point_value_chf || '0.10')}>
+            Speichern
+          </button>
+        </div>
+        <div className="text-sm text-muted mt-2">
+          Beispiel: {Math.round(1 / (parseFloat(famSettings.point_value_chf) || 0.10))} Punkte = 1 CHF
+        </div>
+      </div>
+
       {/* Notifications */}
       <div className="card mb-4">
         <h2 className="font-bold mb-3">🔔 Telegram-Benachrichtigungen</h2>

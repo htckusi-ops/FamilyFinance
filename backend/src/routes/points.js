@@ -72,6 +72,43 @@ router.post('/award', parentOnly, (req, res) => {
   res.json({ ok: true });
 });
 
+// Convert points ↔ CHF
+router.post('/convert', parentOnly, (req, res) => {
+  const { user_id, direction, points: pts } = req.body;
+  const uid = Number(user_id);
+  const amount = Math.abs(Number(pts));
+  if (!amount || amount <= 0) return res.status(400).json({ error: 'Ungültige Menge' });
+
+  const rateSetting = db.prepare("SELECT value FROM family_settings WHERE key='point_value_chf'").get();
+  const rate = parseFloat(rateSetting?.value || '0.10');
+
+  const account = db.prepare('SELECT balance FROM accounts WHERE user_id=?').get(uid);
+  const pointRow = db.prepare('SELECT balance FROM points WHERE user_id=?').get(uid);
+
+  if (direction === 'points_to_chf') {
+    if ((pointRow?.balance || 0) < amount) return res.status(400).json({ error: 'Nicht genug Punkte' });
+    const chf = Math.round(amount * rate * 100) / 100;
+    db.prepare('UPDATE points SET balance=balance-? WHERE user_id=?').run(amount, uid);
+    db.prepare('INSERT INTO point_events (user_id,delta,description) VALUES (?,?,?)').run(uid, -amount, `Umgetauscht in CHF ${chf.toFixed(2)}`);
+    db.prepare('UPDATE accounts SET balance=balance+? WHERE user_id=?').run(chf, uid);
+    db.prepare('INSERT INTO transactions (user_id,amount,type,description) VALUES (?,?,?,?)').run(uid, chf, 'point_exchange', `${amount} Punkte eingelöst`);
+    return res.json({ ok: true, points: -amount, chf });
+  }
+
+  if (direction === 'chf_to_points') {
+    const chf = Math.round(amount * rate * 100) / 100;
+    if ((account?.balance || 0) < chf) return res.status(400).json({ error: 'Nicht genug Guthaben' });
+    const earnedPoints = amount;
+    db.prepare('UPDATE accounts SET balance=balance-? WHERE user_id=?').run(chf, uid);
+    db.prepare('INSERT INTO transactions (user_id,amount,type,description) VALUES (?,?,?,?)').run(uid, -chf, 'point_exchange', `${earnedPoints} Punkte gekauft`);
+    db.prepare('UPDATE points SET balance=balance+? WHERE user_id=?').run(earnedPoints, uid);
+    db.prepare('INSERT INTO point_events (user_id,delta,description) VALUES (?,?,?)').run(uid, earnedPoints, `Gekauft für CHF ${chf.toFixed(2)}`);
+    return res.json({ ok: true, points: earnedPoints, chf: -chf });
+  }
+
+  res.status(400).json({ error: 'Ungültige Richtung' });
+});
+
 // Child's point history
 router.get('/:id', (req, res) => {
   const uid = Number(req.params.id);

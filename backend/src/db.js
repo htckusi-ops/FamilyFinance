@@ -210,6 +210,7 @@ function seedDefaultSettings() {
     duty_jobs_label: 'Haushaltspflichten',
     extra_jobs_label: 'Extra-Jobs',
     currency: 'CHF',
+    point_value_chf: '0.10',
   };
   const ins = db.prepare('INSERT OR IGNORE INTO family_settings (key, value) VALUES (?,?)');
   for (const [k, v] of Object.entries(defaults)) ins.run(k, v);
