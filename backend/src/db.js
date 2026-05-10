@@ -171,6 +171,18 @@ function migrate() {
       value TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS bath_participants (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS bath_turns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      bath_date TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS api_tokens (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,

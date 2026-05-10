@@ -17,6 +17,10 @@ export default function ChildNav() {
         <span className="icon">🏷️</span>
         <span>Flohmarkt</span>
       </NavLink>
+      <NavLink to="/bath">
+        <span className="icon">🛁</span>
+        <span>Badespass</span>
+      </NavLink>
       <button onClick={logout} style={{ background: 'none', color: '#6b7280', fontSize: '0.7rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '4px 12px', borderRadius: 10 }}>
         <span style={{ fontSize: '1.4rem' }}>👋</span>
         <span>Abmelden</span>

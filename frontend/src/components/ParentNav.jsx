@@ -19,6 +19,10 @@ export default function ParentNav() {
         <span className="icon">🏷️</span>
         <span>Flohmarkt</span>
       </NavLink>
+      <NavLink to="/bath">
+        <span className="icon">🛁</span>
+        <span>Badespass</span>
+      </NavLink>
       <NavLink to="/settings">
         <span className="icon">⚙️</span>
         <span>Einstellungen</span>
