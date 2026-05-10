@@ -1,6 +1,10 @@
-.PHONY: up down logs update update-dev build shell-backend
+.PHONY: up down logs update update-dev build shell-backend init
 
-up:
+init:
+	mkdir -p data backups uploads
+	@echo "Verzeichnisse erstellt. Weiter mit: make up"
+
+up: init
 	docker compose up -d
 
 down:
