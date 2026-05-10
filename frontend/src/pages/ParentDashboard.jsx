@@ -111,6 +111,12 @@ export default function ParentDashboard() {
               <div className="font-semibold mt-2">Belohnungen</div>
             </div>
           </Link>
+          <Link to="/finance" style={{ textDecoration: 'none' }}>
+            <div className="card" style={{ background: '#f0fdf4', textAlign: 'center', padding: 16 }}>
+              <div style={{ fontSize: '2rem' }}>📊</div>
+              <div className="font-semibold mt-2">Finanzübersicht</div>
+            </div>
+          </Link>
         </div>
       </div>
 

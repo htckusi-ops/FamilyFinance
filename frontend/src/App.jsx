@@ -11,6 +11,7 @@ import FleaDayPage from './pages/FleaDayPage';
 import RewardsPage from './pages/RewardsPage';
 import SettingsPage from './pages/SettingsPage';
 import BathPage from './pages/BathPage';
+import FinanceOverviewPage from './pages/FinanceOverviewPage';
 import ParentNav from './components/ParentNav';
 import ChildNav from './components/ChildNav';
 
@@ -46,6 +47,7 @@ function AppRoutes() {
         <Route path="/rewards" element={<RewardsPage />} />
         <Route path="/bath" element={<BathPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/finance" element={<FinanceOverviewPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>

@@ -21,6 +21,10 @@ export default function ParentNav() {
         <span className="icon">🏷️</span>
         <span>Flohmarkt</span>
       </NavLink>
+      <NavLink to="/finance">
+        <span className="icon">📊</span>
+        <span>Finanzen</span>
+      </NavLink>
       <NavLink to="/bath">
         <span className="icon">🛁</span>
         <span>Badespass</span>
