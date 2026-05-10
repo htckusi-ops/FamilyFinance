@@ -4,8 +4,8 @@ const archiver = require('archiver');
 const db = require('../db');
 
 const BACKUP_PATH = process.env.BACKUP_PATH || '/app/backups';
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../../data/familyfinance.db');
-const UPLOADS_PATH = path.join(__dirname, '../../../uploads');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../data/familyfinance.db');
+const UPLOADS_PATH = path.join(__dirname, '../../uploads');
 
 async function createBackup() {
   fs.mkdirSync(BACKUP_PATH, { recursive: true });
