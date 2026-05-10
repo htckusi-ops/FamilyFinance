@@ -3,7 +3,7 @@ const db = require('../db');
 const { auth, parentOnly } = require('../middleware/auth');
 const { checkBadge } = require('../services/badges');
 const { sendNotification } = require('../services/notify');
-const upload = require('../middleware/upload');
+const { single: upload } = require('../middleware/upload');
 
 router.use(auth);
 
@@ -11,14 +11,14 @@ router.get('/', (_req, res) => {
   res.json(db.prepare('SELECT * FROM rewards WHERE active=1 ORDER BY points_required').all());
 });
 
-router.post('/', parentOnly, upload.single('image'), (req, res) => {
+router.post('/', parentOnly, upload('image', { maxPx: 400 }), (req, res) => {
   const { name, points_required, image: imageText } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : (imageText || null);
   const r = db.prepare('INSERT INTO rewards (name,points_required,image) VALUES (?,?,?)').run(name, points_required, image);
   res.json({ id: r.lastInsertRowid });
 });
 
-router.patch('/:id', parentOnly, upload.single('image'), (req, res) => {
+router.patch('/:id', parentOnly, upload('image', { maxPx: 400 }), (req, res) => {
   const { name, points_required, active, image: imageText } = req.body;
   const fields = {};
   if (name !== undefined) fields.name = name;

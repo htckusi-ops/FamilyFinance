@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const { auth, parentOnly } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { single: upload, deleteUpload } = require('../middleware/upload');
 const { checkBadge } = require('../services/badges');
 
 router.use(auth);
@@ -50,7 +50,7 @@ router.get('/items/:id', (req, res) => {
   res.json({ ...item, owners });
 });
 
-router.post('/items', parentOnly, upload.single('photo'), (req, res) => {
+router.post('/items', parentOnly, upload('photo'), (req, res) => {
   const { day_id, name, description, barcode, category, condition, suggested_price, owners } = req.body;
   const photo = req.file ? `/uploads/${req.file.filename}` : null;
   const item = db.prepare(`
@@ -72,7 +72,7 @@ router.post('/items', parentOnly, upload.single('photo'), (req, res) => {
   res.json({ id: itemId });
 });
 
-router.patch('/items/:id', parentOnly, upload.single('photo'), (req, res) => {
+router.patch('/items/:id', parentOnly, upload('photo'), (req, res) => {
   const id = Number(req.params.id);
   const { name, description, barcode, category, condition, suggested_price, day_id } = req.body;
   const fields = {};
@@ -83,7 +83,11 @@ router.patch('/items/:id', parentOnly, upload.single('photo'), (req, res) => {
   if (condition !== undefined) fields.condition = condition;
   if (suggested_price !== undefined) fields.suggested_price = suggested_price;
   if (day_id !== undefined) fields.day_id = day_id;
-  if (req.file) fields.photo = `/uploads/${req.file.filename}`;
+  if (req.file) {
+    const old = db.prepare('SELECT photo FROM flea_items WHERE id=?').get(id);
+    if (old?.photo) deleteUpload(old.photo);
+    fields.photo = `/uploads/${req.file.filename}`;
+  }
   const sets = Object.keys(fields).map(k => `${k}=?`).join(',');
   if (sets) db.prepare(`UPDATE flea_items SET ${sets} WHERE id=?`).run(...Object.values(fields), id);
   res.json({ ok: true });
@@ -165,7 +169,10 @@ router.post('/items/:id/reactivate', parentOnly, (req, res) => {
 });
 
 router.delete('/items/:id', parentOnly, (req, res) => {
-  db.prepare('DELETE FROM flea_items WHERE id=?').run(Number(req.params.id));
+  const id = Number(req.params.id);
+  const item = db.prepare('SELECT photo FROM flea_items WHERE id=?').get(id);
+  if (item?.photo) deleteUpload(item.photo);
+  db.prepare('DELETE FROM flea_items WHERE id=?').run(id);
   res.json({ ok: true });
 });
 

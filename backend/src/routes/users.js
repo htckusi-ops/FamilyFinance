@@ -2,7 +2,7 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { auth, parentOnly } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { single: upload, deleteUpload } = require('../middleware/upload');
 
 router.use(auth);
 
@@ -88,9 +88,12 @@ router.patch('/:id', parentOnly, (req, res) => {
   res.json({ ok: true });
 });
 
-router.post('/:id/photo', parentOnly, upload.single('photo'), (req, res) => {
+router.post('/:id/photo', parentOnly, upload('photo', { maxPx: 400 }), (req, res) => {
   const uid = Number(req.params.id);
-  const photo = req.file ? `/uploads/${req.file.filename}` : null;
+  if (!req.file) return res.status(400).json({ error: 'No file' });
+  const old = db.prepare('SELECT photo FROM users WHERE id=?').get(uid);
+  if (old?.photo) deleteUpload(old.photo);
+  const photo = `/uploads/${req.file.filename}`;
   db.prepare('UPDATE users SET photo=? WHERE id=?').run(photo, uid);
   res.json({ photo });
 });

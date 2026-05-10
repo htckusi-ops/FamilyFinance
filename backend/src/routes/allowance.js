@@ -109,7 +109,7 @@ router.delete('/:id/goals/:gid', parentOnly, (req, res) => {
 });
 
 // Record a child's purchase (deduct from balance, optional photo)
-router.post('/:id/expense', parentOnly, require('../middleware/upload').single('photo'), (req, res) => {
+router.post('/:id/expense', parentOnly, require('../middleware/upload').single('photo', { maxPx: 1600 }), (req, res) => {
   const uid = Number(req.params.id);
   const amount = Math.abs(Number(req.body.amount));
   const description = req.body.description || 'Ausgabe';
@@ -124,7 +124,7 @@ router.post('/:id/expense', parentOnly, require('../middleware/upload').single('
 });
 
 // Receipt OCR
-router.post('/:id/receipt', parentOnly, require('../middleware/upload').single('receipt'), async (req, res) => {
+router.post('/:id/receipt', parentOnly, require('../middleware/upload').single('receipt', { maxPx: 1600 }), async (req, res) => {
   const uid = Number(req.params.id);
   if (!req.file) return res.status(400).json({ error: 'No file' });
   try {
