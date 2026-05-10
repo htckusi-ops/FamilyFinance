@@ -5,6 +5,7 @@ import api from '../api/client';
 import ProgressBar from '../components/ProgressBar';
 import Modal from '../components/Modal';
 import Avatar from '../components/Avatar';
+import PointsTimeline from '../components/PointsTimeline';
 
 function greeting() {
   const h = new Date().getHours();
@@ -129,6 +130,14 @@ export default function ChildDashboard() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Points timeline */}
+      {rewards.length > 0 && (
+        <div className="card mb-4">
+          <h2 className="font-bold mb-3">🗺️ Mein Weg zu den Wünschen</h2>
+          <PointsTimeline points={points} rewards={rewards} />
         </div>
       )}
 

@@ -15,8 +15,18 @@ export default function PointsPage({ childId }) {
   const [settings, setSettings] = useState({});
   const [jobModal, setJobModal] = useState(false);
   const [awardModal, setAwardModal] = useState(false);
+  const [deductModal, setDeductModal] = useState(false);
   const [newJob, setNewJob] = useState({ name: '', points: '', recurrence: 'manual', job_type: 'extra' });
   const [freeAward, setFreeAward] = useState({ delta: '', description: '' });
+  const [deduct, setDeduct] = useState({ points: '5', reason: '' });
+
+  const DEDUCT_PRESETS = [
+    'TV/Tablet-Zeit überschritten',
+    'Aufforderungen nicht nachgekommen',
+    'Vereinbarung gebrochen',
+    'Unehrlichkeit',
+    'Geschwister geärgert',
+  ];
 
   useEffect(() => {
     api.get('/points/jobs').then(r => setJobs(r.data));
@@ -43,6 +53,18 @@ export default function PointsPage({ childId }) {
     } else {
       toast(`✅ ${job.name} erledigt – danke!`, 'success');
     }
+  }
+
+  async function doDeduct() {
+    if (!selectedChild && !childId) return toast('Bitte Kind auswählen', 'error');
+    if (!deduct.reason.trim()) return toast('Bitte Grund angeben', 'error');
+    const uid = selectedChild || childId;
+    const pts = -Math.abs(Number(deduct.points));
+    await api.post('/points/award', { user_id: uid, delta: pts, description: deduct.reason });
+    toast(`${pts} Punkte abgezogen`, 'success');
+    setDeduct({ points: '5', reason: '' });
+    setDeductModal(false);
+    api.get(`/points/${uid}`).then(r => setHistory(r.data));
   }
 
   async function awardFree() {
@@ -162,9 +184,15 @@ export default function PointsPage({ childId }) {
         </div>
         <JobList items={extras} isDuty={false} />
         {isParent && (
-          <button className="btn-ghost w-full mt-3" onClick={() => setAwardModal(true)}>
-            ✏️ Spontane Punkte vergeben
-          </button>
+          <div className="flex gap-2 mt-3">
+            <button className="btn-ghost w-full" onClick={() => setAwardModal(true)}>
+              ✏️ Spontane Punkte
+            </button>
+            <button className="w-full" style={{ background: '#fff1f2', color: '#be123c', border: '1.5px solid #fecdd3', borderRadius: 12, padding: '10px 12px', fontWeight: 600, fontSize: '0.9rem' }}
+              onClick={() => setDeductModal(true)}>
+              ⚠️ Abzug
+            </button>
+          </div>
         )}
       </div>
 
@@ -208,6 +236,41 @@ export default function PointsPage({ childId }) {
             <option value="weekly">Wöchentlich</option>
           </select>
           <button className="btn-primary w-full" onClick={addJob}>Speichern</button>
+        </div>
+      </Modal>
+
+      <Modal open={deductModal} title="⚠️ Punkte abziehen" onClose={() => setDeductModal(false)}>
+        <div className="flex flex-col gap-3">
+          <div style={{ background: '#fff1f2', borderRadius: 10, padding: '10px 12px', fontSize: '0.82rem', color: '#be123c' }}>
+            Abzüge sollten immer mit einem Gespräch verbunden sein — nicht als automatische Strafe.
+          </div>
+          <div>
+            <div className="text-sm font-semibold mb-2">Grund (Schnellauswahl)</div>
+            <div className="flex flex-col gap-1">
+              {DEDUCT_PRESETS.map(p => (
+                <button key={p}
+                  style={{ textAlign: 'left', padding: '8px 12px', borderRadius: 10, background: deduct.reason === p ? '#fff1f2' : '#f8faff', border: `1.5px solid ${deduct.reason === p ? '#fca5a5' : '#e0e7ef'}`, fontWeight: deduct.reason === p ? 700 : 400, fontSize: '0.85rem', color: deduct.reason === p ? '#be123c' : 'var(--text)' }}
+                  onClick={() => setDeduct(d => ({ ...d, reason: p }))}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+          <input placeholder="Oder eigener Grund..." value={deduct.reason}
+            onChange={e => setDeduct(d => ({ ...d, reason: e.target.value }))} />
+          <div>
+            <div className="text-sm font-semibold mb-1">Punkte abziehen</div>
+            <div className="flex items-center gap-3">
+              <input type="range" min="1" max="30" value={deduct.points}
+                onChange={e => setDeduct(d => ({ ...d, points: e.target.value }))}
+                style={{ flex: 1 }} />
+              <span className="font-bold" style={{ color: '#be123c', minWidth: 40 }}>−{deduct.points}</span>
+            </div>
+          </div>
+          <button style={{ background: '#be123c', color: '#fff', borderRadius: 12, padding: '12px', fontWeight: 700, fontSize: '0.95rem' }}
+            onClick={doDeduct}>
+            Abzug bestätigen
+          </button>
         </div>
       </Modal>
 
