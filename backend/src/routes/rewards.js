@@ -12,19 +12,20 @@ router.get('/', (_req, res) => {
 });
 
 router.post('/', parentOnly, upload.single('image'), (req, res) => {
-  const { name, points_required } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : null;
+  const { name, points_required, image: imageText } = req.body;
+  const image = req.file ? `/uploads/${req.file.filename}` : (imageText || null);
   const r = db.prepare('INSERT INTO rewards (name,points_required,image) VALUES (?,?,?)').run(name, points_required, image);
   res.json({ id: r.lastInsertRowid });
 });
 
 router.patch('/:id', parentOnly, upload.single('image'), (req, res) => {
-  const { name, points_required, active } = req.body;
+  const { name, points_required, active, image: imageText } = req.body;
   const fields = {};
   if (name !== undefined) fields.name = name;
   if (points_required !== undefined) fields.points_required = points_required;
   if (active !== undefined) fields.active = active ? 1 : 0;
   if (req.file) fields.image = `/uploads/${req.file.filename}`;
+  else if (imageText !== undefined) fields.image = imageText || null;
   const sets = Object.keys(fields).map(k => `${k}=?`).join(',');
   if (sets) db.prepare(`UPDATE rewards SET ${sets} WHERE id=?`).run(...Object.values(fields), Number(req.params.id));
   res.json({ ok: true });
