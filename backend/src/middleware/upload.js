@@ -1,5 +1,5 @@
 const multer = require('multer');
-const sharp = require('sharp');
+const Jimp = require('jimp');
 const path = require('path');
 const fs = require('fs');
 
@@ -25,10 +25,12 @@ function single(fieldName, { maxPx = 1200, quality = 82 } = {}) {
       try {
         const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
         const outPath = path.join(UPLOADS_DIR, filename);
-        await sharp(req.file.buffer)
-          .resize(maxPx, maxPx, { fit: 'inside', withoutEnlargement: true })
-          .jpeg({ quality, mozjpeg: true })
-          .toFile(outPath);
+        const image = await Jimp.read(req.file.buffer);
+        if (image.getWidth() > maxPx || image.getHeight() > maxPx) {
+          image.scaleToFit(maxPx, maxPx, Jimp.RESIZE_LANCZOS3);
+        }
+        image.quality(quality);
+        await image.writeAsync(outPath);
         req.file.filename = filename;
         req.file.path = outPath;
         next();
