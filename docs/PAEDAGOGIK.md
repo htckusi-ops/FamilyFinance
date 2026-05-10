@@ -34,20 +34,22 @@ Der sogenannte **Overjustification-Effekt** zeigt: Wird eine Aktivität, die ein
 
 ---
 
-### ✅ Haushaltspflichten (pädagogisch sehr wertvoll)
+### ✅ Haushaltspflichten (pädagogisch wertvoll – mit Vorsicht)
 
-**Warum gut (in der aktuellen Implementierung):**
-- Haushaltspflichten geben **keine Punkte** – korrekt!
-- Sie gehören zur Familiengemeinschaft, nicht zum Belohnungssystem
-- Vermeidet Overjustification-Effekt für Grundpflichten
-- Kinder verstehen: Zur Familie beitragen ist normal und erwartet
+**Aktuelle Implementierung:**
+- Haushaltspflichten (`job_type = 'duty'`) können optional Punkte geben (konfigurierbar)
+- Sie werden visuell klar von Extra-Jobs getrennt
+- Positives Quittieren ("Danke!") ist auch ohne Punkte möglich
 
-**Risiko wenn falsch umgesetzt:**
-Werden Haushaltspflichten bezahlt/bewertet, lernen Kinder, nur dann zu helfen, wenn eine Belohnung winkt.
+**Pädagogische Einschätzung:**
+- **0 Punkte für Pflichten** ist pädagogisch bevorzugt: Kinder verstehen, dass Mithelfen zur Familie gehört
+- **Punkte für Pflichten** kann sinnvoll sein, wenn Kinder gerade Motivation brauchen; sollte aber schrittweise zurückgefahren werden
+- Overjustification-Effekt: Wird eine Aktivität, die ein Kind gerne tut, mit Belohnungen verknüpft, sinkt die intrinsische Freude langfristig
 
 **Empfehlungen:**
-- Pflichten klar von Extra-Jobs trennen (bereits implementiert ✓)
-- Positives Quittieren ("Danke!") statt Punkte (bereits implementiert ✓)
+- Pflichten klar von Extra-Jobs trennen (implementiert ✓)
+- Standard: 0 Punkte für Pflichten, Punkte nur vorübergehend als Einstiegshilfe
+- Positives Quittieren bevorzugen
 - Ab 13 Jahren: Pflichten mit Verantwortungsbewusstsein verknüpfen, nicht mit Druck
 
 ---
@@ -219,12 +221,14 @@ Werden Haushaltspflichten bezahlt/bewertet, lernen Kinder, nur dann zu helfen, w
 
 Die folgenden Anpassungen wurden direkt im Code umgesetzt:
 
-1. **Haushaltspflichten ohne Punkte** – `job_type = 'duty'` gibt 0 Punkte, wird nur positiv quittiert
-2. **Klare visuelle Trennung** – Pflichten (grün) vs. Extra-Jobs (blau) in der UI
-3. **Streak optional** – `family_settings.show_streak` steuert Sichtbarkeit
-4. **Badges optional** – `family_settings.show_badges` steuert Sichtbarkeit
-5. **Altersgruppen** – `age_group` Feld auf users-Tabelle für zukünftige altersgerechte Anpassungen
-6. **Negativpunkte-Warnung** – UI-Hinweis bei negativem Delta in der Punktevergabe
+1. **Haushaltspflichten konfigurierbar** – `job_type = 'duty'` wird separat angezeigt; Punkte optional (Standard: 0)
+2. **Klare visuelle Trennung** – Pflichten vs. Extra-Jobs in der UI
+3. **Streak optional** – `family_settings.show_streak` steuert Sichtbarkeit; Standard: aktiv
+4. **Badges optional** – `family_settings.show_badges` steuert Sichtbarkeit; Standard: aktiv
+5. **Altersgruppen** – `age_group` Feld auf users-Tabelle (Vorschule / Schule / Teenager)
+6. **Negativpunkte-Warnung** – UI-Hinweis und Voreinstellungen bei negativem Delta
+7. **Punkte-Timeline** – Visueller Fortschritt zu Belohnungen statt abstrakter Zahlen
+8. **Punkte ↔ CHF Umtausch** – Macht den Wert von Punkten greifbar und lehrreich
 
 ---
 

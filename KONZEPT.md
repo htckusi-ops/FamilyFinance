@@ -1,218 +1,341 @@
-# FamilyFinance – Konzept
+# FamilyFinance – Konzept & Funktionsbeschreibung
 
 ## Projektübersicht
 
-FamilyFinance ist eine familienfreundliche Web-App zur Verwaltung von Taschengeld, Flohmarktartikeln und einem Belohnungspunktsystem für Kinder. Das System läuft als Docker-Container auf einer Synology NAS und ist über den Browser (Desktop und Smartphone) erreichbar.
+FamilyFinance ist eine familienfreundliche Web-App zur Verwaltung von Taschengeld, Flohmarktartikeln, einem Punkte- und Belohnungssystem sowie der Badezimmer-Planung für Kinder. Das System läuft als Docker-Stack auf einer Synology NAS und ist über jeden Browser (Desktop und Smartphone) erreichbar.
 
 ---
 
 ## Benutzerrollen
 
-### Eltern (Admin)
+### Eltern / Admin
 - Vollzugriff auf alle Funktionen und Einstellungen
 - Verwaltung von Benutzerkonten (Kinder anlegen, Fotos hochladen)
-- Taschengeld definieren und auszahlen
-- Punkte vergeben (spontan oder über Mini-Jobs)
-- Belohnungen definieren (was kostet wie viele Punkte)
-- Flohmarktverwaltung: Artikel erfassen, Preise festlegen, Etiketten drucken
-- Kassierfunktion beim Flohmarktverkauf
-- Login: Benutzername + Passwort
+- Taschengeld konfigurieren und auszahlen
+- Ausgaben mit Beschreibung und Foto vom Kinderkonto abbuchen
+- Punkte vergeben oder abziehen (spontan oder über Mini-Jobs)
+- Belohnungsanfragen genehmigen oder ablehnen
+- Flohmarktverwaltung: Artikel erfassen, Preise festlegen, Etiketten drucken, kassieren
+- Einstellungen: Familienwerte, API-Tokens, Backup
+- Login: Benutzername + Passwort (case-insensitive)
+- Abmelden: 👋 Abmelden-Button in der Navigation
 
 ### Kinder
-- Eigenes Dashboard mit Übersicht (Guthaben, Punkte, Flohmarkt-Erlöse)
-- Wunschliste mit Punktefortschritt
-- Login: Klick auf Profilbild (optional mit PIN/Passwort, konfigurierbar)
+- Eigenes Dashboard: Guthaben, Punkte, Flohmarkt-Erlöse, Sparziele, Belohnungen, Badges
+- Punkte-Timeline: visueller Weg zu den nächsten Belohnungen
+- Belohnung beantragen (Eltern werden benachrichtigt)
+- Login: Klick auf Profilbild (optional mit PIN)
 - Keine Administrationsrechte
 
 ---
 
-## Module
+## Module (implementiert)
 
 ### 1. Taschengeld-Verwaltung
 
-- Pro Kind: konfigurierbarer Taschengeld-Betrag und Intervall (wöchentlich/monatlich)
-- Manuelle Einzahlungen und Abzüge möglich
-- Transaktionsverlauf pro Kind
-- Guthaben wird im Kinder-Dashboard angezeigt
-- Optional: automatische Auszahlung (Cron-basiert)
+- Pro Kind: konfigurierbarer Betrag und Intervall (wöchentlich / monatlich)
+- Nächstes Auszahlungsdatum konfigurierbar
+- Manuelle Einzahlungen und Ausgaben (mit Beschreibung und optionalem Belegfoto)
+- Belegfoto wird client-seitig auf max. 500 px verkleinert (Canvas API, kein Server-Overhead)
+- Transaktionsverlauf mit Typ-Labels und klickbaren Foto-Thumbnails
+- Zinssimulation: konfigurierbarer Zinssatz auf Sparkonto-Guthaben (monatlicher Cron)
+- Sparbüchse (savings_balance): separat vom Hauptkonto, eigener Saldo
 
-#### Spar-Ziele
-- Kind (oder Elternteil) definiert ein Sparziel mit Name, Betrag und optionalem Bild (z. B. „LEGO Set – CHF 45.–")
-- Fortschrittsbalken zeigt wie viel bereits gespart ist
-- Mehrere Sparziele parallel möglich
-- Erreichtes Ziel wird visuell gefeiert (Animation)
-
-#### Ausgaben-Tracking (freiwillig)
-- Kinder können selbst eintragen, wofür sie Geld ausgegeben haben
-- Spielerisch gestaltet, keine Pflicht
-- Eltern sehen die Einträge, können kommentieren
-
-#### Zins-Simulation
-- Eltern definieren einen „Familien-Zinssatz" (z. B. 5 % pro Monat auf Sparkonto-Guthaben)
-- Wird automatisch per Cron gutgeschrieben
-- Zeigt Kindern spielerisch den Effekt des Sparens
+#### Sparziele
+- Name, Zielbetrag, optionales Bild
+- Fortschrittsbalken (aktueller Betrag / Zielbetrag)
+- Mehrere Sparziele parallel
+- Erreichtes Ziel: Badge „Sparziel erreicht!" wird automatisch vergeben
 
 ### 2. Punkte- & Belohnungssystem
 
-#### Mini-Jobs (von Eltern definiert)
-- Name des Jobs (z. B. „Geschirrspüler ausräumen")
-- Feste Punktzahl
-- Wiederkehrende Jobs: täglich, wöchentlich oder manuell aktiviert
-- Elternteil vergibt Punkte per Klick auf dem Handy nach Erledigung
+#### Mini-Jobs
+- Eltern definieren Jobs mit Name, Punktzahl, Wiederholung (manuell / täglich / wöchentlich)
+- Zwei Typen:
+  - **Haushaltspflichten** (`duty`): Zur Gemeinschaft beitragen; Punkte optional konfigurierbar
+  - **Extra-Jobs** (`extra`): Freiwillige Zusatzleistungen mit Punkten
+- Elternteil bestätigt Erledigung per Klick → Punkte werden gutgeschrieben
+- Streak-Anzeige: Anzahl aufeinanderfolgender Wochen mit erledigten Jobs
+- Streak und Badges können pro Familie deaktiviert werden (`family_settings`)
 
 #### Spontane Punktvergabe
-- Freie Eingabe: Kind auswählen, Beschreibung, Punktzahl
-- Auch negative Punkte möglich (Abzug)
+- Freie Eingabe: Kind, Beschreibung, Punktzahl (positiv oder negativ)
+- Negative Punkte (Abzug) mit Voreinstellungen (z. B. TV-Zeit, Aufforderungen)
+- UI-Warnung bei negativem Delta
 
-#### Belohnungen (von Eltern definiert)
-- Name der Belohnung (z. B. „Indoor-Spielplatz", „Kinobesuch", „1 CHF Taschengeld extra")
-- Benötigte Punktzahl
-- Bild/Icon optional
-- Kinder sehen Fortschrittsbalken zu jeder Belohnung
-- Erreichte Belohnungen werden hervorgehoben
-- Kind kann Einlösen beantragen → Eltern erhalten Benachrichtigung (Telegram/Signal-Bot optional)
+#### Punkte ↔ CHF Umtausch
+- Konfigurierbarer Wert: 1 Punkt = X CHF (Standard: 0.10)
+- Eltern können Punkte in CHF umwandeln (Gutschrift auf Kinderkonto) oder umgekehrt
+- Live-Vorschau des Umtauschbetrags
 
-#### Abzeichen / Badges
+#### Belohnungen
+- Eltern definieren Belohnungen mit Name, Punktanforderung, optionalem Bild
+- Fortschrittsbalken pro Belohnung im Kinderdashboard
+- Kind beantragt Einlösung → Eltern genehmigen oder lehnen ab
+- Telegram-Benachrichtigung bei neuem Antrag (optional)
+- Badge „Belohnung eingelöst" bei erstem Claim
+
+#### Punkte-Timeline
+- Visuelle Zeitachse im Kinderdashboard
+- Zeigt aktuellen Punktestand als glühenden ⭐-Marker
+- Alle Belohnungen als Meilensteine (nächste hervorgehoben, erreichte als ✓)
+
+#### Badges / Abzeichen
 - Automatisch vergeben bei Meilensteinen:
-  - „Erstes Taschengeld gespart"
-  - „5 Mini-Jobs erledigt"
-  - „Flohmarkt-Profi" (ersten Artikel verkauft)
-  - „Sparfuchs" (Sparziel erreicht)
-  - „Wochenheld" (alle wöchentlichen Jobs erledigt)
-  - uvm. (erweiterbar)
-- Im Kinder-Dashboard sichtbar, neu erhaltene Badges werden animiert angezeigt
-
-#### Streak-Anzeige
-- Zeigt wie viele Wochen in Folge Mini-Jobs erledigt wurden
-- Visuelle Flammen-/Stern-Anzeige (wie bei Duolingo)
-- Motiviert zur Kontinuität
-
-#### Kinder-Dashboard – Punkte-Ansicht
-- Aktuelle Punktzahl gut sichtbar
-- Belohnungsliste mit Fortschrittsbalken (kindergerecht, bunt)
-- Bereits erreichbare Belohnungen: grün / freigeschaltet-Optik
-- Noch fehlende Punkte sichtbar
-- Streak und Badges prominent platziert
+  - `first_save` – Erstes Sparziel gespeichert
+  - `goal_reached` – Sparziel erreicht
+  - `first_job` – Ersten Mini-Job erledigt
+  - `five_jobs` – 5 Mini-Jobs erledigt
+  - `twenty_jobs` – 20 Mini-Jobs erledigt
+  - `streak_2` – 2 Wochen Streak
+  - `streak_4` – 4 Wochen Streak
+  - `flea_first_item` – Ersten Flohmarkt-Artikel erfasst
+  - `flea_first_sale` – Ersten Artikel verkauft
+  - `first_reward` – Erste Belohnung eingelöst
+  - `saver_100` – CHF 100 gespart
 
 ### 3. Flohmarkt-Verwaltung
 
-#### Artikel erfassen
-- QR-Code / Strichcode scannen über Smartphone-Kamera (browser-basiert, kein App-Download)
-- Manuelle Eingabe möglich
-- Produktinfos automatisch abrufen (OpenFoodFacts / Open Product Data APIs)
-- Felder: Name, Beschreibung, Foto (optional, direkt per Kamera), zugewiesenes Kind, Richtpreis, Zustand
-- Kategorien (Spielzeug, Kleidung, Bücher, Sonstiges)
-
-#### Flohmarkt-Tage
-- Eltern erstellen einen „Flohmarkttag" mit Datum
+#### Flohmarkttage
+- Eltern erstellen Flohmarkttage mit Datum und Name
 - Artikel werden einem Flohmarkttag zugewiesen
-- Status pro Artikel: „geplant", „verkauft", „nicht verkauft"
 
-#### Artikel-Archiv
-- Nicht verkaufte Artikel bleiben gespeichert
-- Beim nächsten Flohmarkttag können archivierte Artikel wiederverwendet werden (ein Klick → neu zuweisen)
+#### Artikel erfassen
+- Barcode-Scan über Smartphone-Kamera (HTTPS) oder Foto-Upload (HTTP-Fallback)
+- Manuelle Eingabe: Name, Beschreibung, Kategorie, Zustand, Richtpreis, Foto
+- Kategorien: Spielzeug, Kleidung, Bücher, Elektronik, Sport, Sonstiges
+- Zustände: neu, sehr gut, gut, akzeptabel
+- Besitzer: beliebige Benutzer (Kinder und Elternteile) mit prozentualer Aufteilung
+- Artikel ohne Besitzer: werden im Abschluss als ⚠️ Warnung angezeigt
 
-#### Gemeinsamer Stand
-- Mehrere Kinder können Artikel auf demselben Stand verkaufen
-- Erlöse werden automatisch pro Kind aufgeteilt
-- Tages-Zusammenfassung zeigt Erlöse je Kind
+#### Archiv & Wiederverwendung
+- Nicht verkaufte Artikel bleiben gespeichert (Status: `unsold`)
+- Wiederaktivierung für neuen Flohmarkttag per „Reaktivieren"-Funktion
 
 #### Etikettendruck
-- Auswahl: alle Artikel eines Flohmarkttags oder individuelle Auswahl
-- Etikett enthält: Name, Kind, Richtpreis, QR-Code (für schnelles Identifizieren)
-- Ausgabe als PDF (druckoptimiert, mehrere Etiketten pro Seite, z. B. A4 mit 6–12 Etiketten)
-- Etikettenformat konfigurierbar
+- PDF mit allen verfügbaren Artikeln eines Tages
+- Etikett: Name, Richtpreis, Besitzer, Kategorie, Zustand
+- Optimiert für A4 (mehrere Etiketten pro Seite)
 
-#### Kassierfunktion (beim Flohmarkt)
-- Elternteil öffnet App auf Smartphone
-- Artikel per QR-Code scannen oder aus Liste auswählen
-- Tatsächlichen Verkaufspreis eingeben (Richtpreis vorausgefüllt)
-- Als „verkauft" markieren → Erlös wird dem Kind gutgeschrieben
-- Tages-Zusammenfassung: Total pro Kind, Total gesamt
+#### Kassierfunktion
+- Artikel aus Liste auswählen → Verkaufspreis eingeben (Richtpreis vorausgefüllt)
+- Als „verkauft" markieren → Erlös wird sofort auf Kinderkonto gutgeschrieben
+- Anteilige Aufteilung bei Mehrfachbesitz (share_percent)
+- Artikel als „nicht verkauft" markieren
 
-#### Flohmarkt-Erlöse
-- Werden separat vom Taschengeld ausgewiesen
-- Optional: Flohmarkterlöse auf Taschengeldkonto übertragen
-- Im Kinder-Dashboard sichtbar
+#### Tages-Abschluss
+- Gesamterlös unabhängig von Besitzer-Zuweisung (separater Query)
+- Erlös aufgeteilt pro Kind/Besitzer mit Einzelartikelliste (Name, Kategorie, Preis)
+- Warnung bei Artikeln ohne Besitzer
+- Artikel mit Status `unsold` werden ausgegraut aufgelistet
 
-### 4. Quittungs-Scan (für Eltern)
-- Foto eines Kassenbons hochladen
-- OCR erkennt Betrag automatisch (Tesseract.js, lokal, keine Cloud)
-- Betrag kann als Ausgabe oder Transaktion einem Kind zugewiesen werden
-- Vereinfacht die manuelle Buchführung
+### 4. Badespass
 
-### 5. Telegram / Signal Benachrichtigungen (optional)
-- Eltern können einen Bot konfigurieren
-- Benachrichtigung wenn:
-  - Kind Belohnung einlösen möchte
-  - Punkte vergeben wurden (Bestätigung)
-  - Taschengeld automatisch ausgezahlt wurde
+- Teilnehmende Kinder pro Familie konfigurierbar
+- Wer ist heute dran? – gerechte Reihenfolge: wenigste Züge zuerst, Tiebreak: längstes Warten
+- Zählstand pro Kind mit „ausstehend"-Badge
+- Badetag aufzeichnen (1 Klick) oder letzten Eintrag rückgängig machen
+- Verlauf der letzten 10 Badetage
+
+### 5. Einstellungen
+
+- Familien-Einstellungen: Währung (Standard: CHF), Punkt-Wert in CHF, Labels für Job-Typen
+- Pädagogische Einstellungen: Streak-Anzeige, Badge-Anzeige (pro Familie), Altersgruppe pro Kind
+- Benutzer verwalten: Anlegen, Foto hochladen, PIN setzen, Löschen (letztes Elternteil geschützt)
+- API-Tokens: Langlebige Tokens für Home-Assistant-Integration
+- Backup: DB + Uploads als ZIP herunterladen
+- Telegram: Bot-Token und Chat-ID konfigurieren
+
+### 6. Benachrichtigungen (Telegram)
+
 - Konfigurierbar: welche Events, welcher Chat
-
-### 6. Mini-Finanzbildung (optionale Kachel)
-- Kurze, kindgerechte Erklärungen als Kachel im Dashboard
-- Themen: Was ist Sparen? Was ist ein Rabatt? Was ist Zins?
-- Eltern können Kacheln aktivieren/deaktivieren
-- Inhalte sind statisch und lokal (keine externe Abhängigkeit)
-
-### 7. Backup-Funktion
-- Ein-Klick-Backup der SQLite-Datenbank und Uploads
-- Download als ZIP-Datei
-- Optional: automatisches tägliches Backup in ein NAS-Share (per Volume-Mount konfigurierbar)
-- Backup-Verlauf mit Datum der letzten Sicherungen
+- Events: Belohnungsanfrage, automatische Auszahlung, Punkte vergeben
 
 ---
 
 ## Technischer Stack
 
 ### Backend
-- **Node.js** mit **Express** (REST API)
-- **SQLite** (einfach, keine separate DB nötig, ideal für NAS)
-- **JWT** für Authentifizierung
-- **node-cron** für automatische Auszahlungen und wiederkehrende Jobs
+- **Node.js** mit **Express**
+- **better-sqlite3** (synchron, WAL-Modus, Foreign Keys)
+- **JWT** für Authentifizierung (Eltern) + optionaler PIN (Kinder)
+- **multer** für Datei-Uploads
+- **node-cron** für automatische Auszahlungen, Zinsgutschriften, Backup
 - **PDFKit** für Etikettendruck
-- **Tesseract.js** für Quittungs-OCR (lokal)
-- **node-telegram-bot-api** für Telegram-Benachrichtigungen (optional)
+- **node-telegram-bot-api** für Benachrichtigungen (optional)
 
 ### Frontend
-- **React** (mit Vite)
-- **PWA** (Progressive Web App) – installierbar auf Smartphones, Offline-Fähigkeit
-- **ZXing / QuaggaJS** für browser-basiertes Barcode-/QR-Scannen
-- Responsive Design (Mobile First)
-- Kindgerechtes Design: grosse Schaltflächen, Farben, Illustrationen, Fortschrittsbalken, Animationen
+- **React 18** mit **Vite**
+- **@zxing/browser** für browser-basiertes Barcode-Scannen
+- Canvas API für client-seitige Bildverkleinerung (max. 500 px, JPEG 85 %)
+- Responsive Design, Mobile First
+- PWA-fähig (manifest.json vorhanden)
 
 ### Deployment
-- **Docker Compose** (Backend + Frontend in einem Stack)
-- **Nginx** als Reverse Proxy und Static File Server
-- Volume-Mounts für SQLite-Datenbank, Uploads und Backups
-- Synology NAS: Installation über Container Manager oder Portainer
-- HTTPS über Synology Reverse Proxy (empfohlen) oder Traefik
+- **Docker Compose**: Backend + Frontend + Nginx in einem Stack
+- **nginx:alpine** als Reverse Proxy
+- Volume-Mounts: `./data` → `/app/data`, `./uploads` → `/app/uploads`, `./backups` → `/app/backups`
+- Synology NAS: Installation über Container Manager GUI (kein SSH nötig)
+- HTTPS: Synology Reverse Proxy + Let's Encrypt empfohlen
 
 ---
 
-## Datenbankschema (vereinfacht)
+## Datenbankschema
 
 ```
-users              – id, name, role (parent/child), photo, pin_required, pin_hash, password_hash
-accounts           – id, user_id, balance, savings_balance
-transactions       – id, user_id, amount, type, description, receipt_photo, created_at
-savings_goals      – id, user_id, name, target_amount, image, created_at
-allowance_cfg      – id, user_id, amount, interval, next_payout_at, interest_rate
+users
+  id, name, role (parent|child), photo, pin_required, pin_hash,
+  password_hash, color, age_group, created_at
 
-points             – id, user_id, points_balance, streak_weeks
-point_events       – id, user_id, delta, description, mini_job_id, created_at
-mini_jobs          – id, name, points, recurrence, active
-rewards            – id, name, points_required, image, active
-reward_claims      – id, user_id, reward_id, status (pending/approved), claimed_at, approved_at
-badges             – id, key, name, description, image
-user_badges        – id, user_id, badge_id, earned_at
+accounts
+  id, user_id → users, balance, savings_balance
 
-flea_market_days   – id, date, name
-flea_items         – id, day_id, user_id, name, description, barcode, photo, suggested_price, sold_price, status, condition
-flea_item_owners   – id, flea_item_id, user_id, share_percent  (für gemeinsame Artikel)
+transactions
+  id, user_id → users, amount, type, description, receipt_photo, created_at
 
-notifications_cfg  – id, user_id, telegram_chat_id, signal_number, events_json
-backups            – id, filename, created_at, size_bytes
+savings_goals
+  id, user_id → users, name, target_amount, current_amount, image,
+  achieved_at, created_at
+
+allowance_config
+  id, user_id → users, amount, interval (weekly|monthly),
+  next_payout_at, interest_rate
+
+points
+  id, user_id → users, balance, streak_weeks, last_job_week
+
+point_events
+  id, user_id → users, delta, description, mini_job_id → mini_jobs, created_at
+
+mini_jobs
+  id, name, points, recurrence (manual|daily|weekly),
+  job_type (duty|extra), active, created_at
+
+rewards
+  id, name, points_required, image, active, created_at
+
+reward_claims
+  id, user_id → users, reward_id → rewards,
+  status (pending|approved|rejected), claimed_at, approved_at
+
+badges
+  id, key (unique), name, description, icon
+
+user_badges
+  id, user_id → users, badge_id → badges, earned_at
+
+flea_market_days
+  id, date, name, created_at
+
+flea_items
+  id, day_id → flea_market_days, name, description, barcode, photo,
+  category, condition, suggested_price, sold_price,
+  status (available|sold|unsold), created_at
+
+flea_item_owners
+  id, flea_item_id → flea_items, user_id → users, share_percent
+  UNIQUE(flea_item_id, user_id)
+
+bath_participants
+  id, user_id → users (UNIQUE)
+
+bath_turns
+  id, user_id → users, bath_date, created_at
+
+notification_config
+  id, user_id → users, telegram_chat_id, events (JSON)
+
+api_tokens
+  id, name, token (unique), created_by → users, last_used_at, created_at
+
+backups
+  id, filename, size_bytes, created_at
+
+family_settings
+  key (primary), value
+  Standard-Keys: show_streak, show_badges, interest_visible_age,
+                 duty_jobs_label, extra_jobs_label, currency,
+                 point_value_chf
+```
+
+---
+
+## Projektstruktur
+
+```
+FamilyFinance/
+├── backend/
+│   ├── src/
+│   │   ├── routes/
+│   │   │   ├── allowance.js   # Taschengeld, Ausgaben, Sparziele
+│   │   │   ├── auth.js        # Login (case-insensitiv), Token-Refresh
+│   │   │   ├── backup.js      # DB + Uploads ZIP-Download
+│   │   │   ├── badges.js      # Badge-Abfragen
+│   │   │   ├── bath.js        # Badespass-Modul
+│   │   │   ├── flea.js        # Flohmarkt-Verwaltung
+│   │   │   ├── ha.js          # Home-Assistant-Endpunkte
+│   │   │   ├── notify.js      # Telegram-Konfiguration
+│   │   │   ├── points.js      # Punkte, Mini-Jobs, Umtausch
+│   │   │   ├── rewards.js     # Belohnungen, Claims
+│   │   │   ├── settings.js    # Familien-Einstellungen
+│   │   │   ├── tokens.js      # API-Token-Verwaltung
+│   │   │   └── users.js       # Benutzer-CRUD
+│   │   ├── services/
+│   │   │   ├── badges.js      # Badge-Vergabe-Logik
+│   │   │   ├── pdf.js         # Etiketten-PDF
+│   │   │   └── telegram.js    # Benachrichtigungen
+│   │   ├── middleware/
+│   │   │   ├── auth.js        # JWT-Validierung, parentOnly
+│   │   │   └── upload.js      # multer-Konfiguration
+│   │   ├── db.js              # SQLite-Setup, automatische Migrationen
+│   │   └── index.js           # Express-App, Route-Registrierung
+│   ├── Dockerfile
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── AllowancePage.jsx
+│   │   │   ├── BathPage.jsx
+│   │   │   ├── ChildDashboard.jsx
+│   │   │   ├── FleaDayPage.jsx
+│   │   │   ├── FleaMarketPage.jsx
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── ParentDashboard.jsx
+│   │   │   ├── PointsPage.jsx
+│   │   │   ├── RewardsPage.jsx
+│   │   │   └── SettingsPage.jsx
+│   │   ├── components/
+│   │   │   ├── Avatar.jsx
+│   │   │   ├── BarcodeScanner.jsx  # Video-Scan + HTTP-Fallback
+│   │   │   ├── ChildNav.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   ├── ParentNav.jsx
+│   │   │   ├── PointsTimeline.jsx
+│   │   │   └── ProgressBar.jsx
+│   │   ├── hooks/
+│   │   │   └── useScanner.js
+│   │   ├── api/
+│   │   │   └── client.js      # axios mit JWT-Interceptor
+│   │   └── context/
+│   │       ├── AuthContext.jsx
+│   │       └── ToastContext.jsx
+│   ├── Dockerfile
+│   └── package.json
+├── nginx/
+│   └── nginx.conf
+├── scripts/
+│   └── nas-update.sh
+├── data/                      # SQLite-DB (gitignored, Volume-Mount)
+├── uploads/                   # Fotos (gitignored, Volume-Mount)
+├── backups/                   # Backups (gitignored, Volume-Mount)
+├── docker-compose.yml
+├── docker-compose.dev.yml
+├── Makefile
+├── README.md
+└── docs/
+    ├── SYNOLOGY-GUI-INSTALLATION.md
+    ├── ENTWICKLUNG-WORKFLOW.md
+    └── PAEDAGOGIK.md
 ```
 
 ---
@@ -220,295 +343,40 @@ backups            – id, filename, created_at, size_bytes
 ## UX / Design-Richtlinien
 
 ### Allgemein
-- Klare, übersichtliche Navigation
-- Mobile First (Eltern nutzen Handy für schnelle Aktionen)
-- Helles, freundliches Farbschema mit familiengerechten Illustrationen
+- Mobile First – Eltern nutzen Handy für schnelle Aktionen
+- Helles, freundliches Farbschema (`--primary`, `--accent`, `--success`, `--danger`)
+- Grosse Schaltflächen, klare Beschriftungen, minimale Fachbegriffe
 
 ### Kinder-Dashboard
-- Profilbild gross, Name, Begrüssung (Tageszeit-abhängig)
-- 3 Hauptkacheln: 💰 Guthaben | ⭐ Punkte | 🏷️ Flohmarkt
-- Fortschrittsbereich: Sparziele + Belohnungen als Karten mit Balken
-  - Grün = erreichbar / erreicht
-  - Gelb = fast da (>75 %)
-  - Grau = noch weit entfernt
-- Badges und Streak sichtbar
-- Einfache, lesbare Schrift (min. 16 px), keine Fachbegriffe
+- Profilbild, zeitabhängige Begrüssung (Guten Morgen / Hallo / Guten Abend)
+- 3 Hauptkacheln: 💰 Guthaben | ⭐ Punkte | 🏷️ Flohmarkt-Erlöse
+- Punkte-Timeline vor der Belohnungsliste
+- Sparbüchsen-Saldo sichtbar wenn > 0
+- Streak und Badges per Familien-Einstellung steuerbar
 
-### Eltern-Dashboard
-- Schnellzugriff: „Punkte vergeben", „Taschengeld auszahlen", „Artikel scannen"
-- Übersicht aller Kinder auf einen Blick
-- Offene Belohnungsanfragen prominent anzeigen
-- Navigation zu allen Modulen
+### Eltern-Ansicht
+- Alle Kinder auf Übersichtsseite (ParentDashboard)
+- Schnellzugriff: Taschengeld, Punkte, Flohmarkt, Badespass, Einstellungen
+- 👋 Abmelden-Button in Navigation
+- Offene Belohnungsanfragen mit Approve/Reject-Buttons
 
 ---
 
-## Offline-Fähigkeit (PWA)
+## Sicherheitshinweise
 
-- Service Worker cacht die App-Shell → App startet auch ohne Internet
-- Flohmarktartikel können offline erfasst werden (IndexedDB als lokaler Puffer)
-- Beim nächsten Verbindungsaufbau automatischer Sync mit dem Server
-- Besonders nützlich beim Flohmarkt (Schulhaus-WLAN etc. unzuverlässig)
-
----
-
-## Installations- und Betriebsanleitung
-
-### Voraussetzungen
-
-- Synology NAS mit DSM 7.x
-- Container Manager (oder Portainer) installiert
-- Git auf dem NAS oder lokalem PC verfügbar
-- Internetzugang für den initialen Pull
+- `JWT_SECRET` in `docker-compose.yml` **muss** vor dem ersten Produktionseinsatz geändert werden
+- Admin-Passwort (`admin`) sofort nach Erstinstallation ändern
+- HTTPS über Synology Reverse Proxy einrichten – notwendig für Kamerazugriff im Browser
+- Das letzte Elternteil-Konto kann nicht gelöscht werden (Systemschutz)
+- API-Tokens (für Home Assistant) sind langlebig – nur bei Bedarf ausstellen
 
 ---
 
-### A) Erstinstallation auf der Synology NAS
-
-#### 1. Repository klonen
-
-Entweder direkt auf der NAS (via SSH) oder auf einem PC mit anschliessendem Kopieren:
-
-```bash
-# Via SSH auf der NAS
-ssh admin@<NAS-IP>
-mkdir -p /volume1/docker/familyfinance
-cd /volume1/docker/familyfinance
-git clone https://github.com/htckusi-ops/FamilyFinance.git .
-```
-
-#### 2. Konfiguration anpassen
-
-```bash
-cp .env.example .env
-nano .env
-```
-
-Relevante Einstellungen in `.env`:
-```
-# Pflicht
-ADMIN_USERNAME=eltern
-ADMIN_PASSWORD=sicheres-passwort
-JWT_SECRET=zufaelliger-langer-string
-TZ=Europe/Zurich
-
-# Optional: Telegram-Bot
-TELEGRAM_BOT_TOKEN=
-TELEGRAM_CHAT_ID=
-
-# Optional: Backup
-BACKUP_PATH=/backups
-```
-
-#### 3. Container starten
-
-```bash
-docker compose up -d
-```
-
-#### 4. App aufrufen
-
-```
-http://<NAS-IP>:3000
-```
-
-Beim ersten Aufruf: Ersteinrichtung (Familie anlegen, Kinder hinzufügen).
-
-#### 5. HTTPS einrichten (empfohlen)
-
-Im Synology Reverse Proxy (Systemsteuerung → Anmeldeportal → Erweitert):
-- Quell-Hostname: `familyfinance.deine-domain.ch` (oder lokaler DNS)
-- Protokoll: HTTPS, Port 443
-- Ziel: HTTP, `localhost`, Port 3000
-- Let's Encrypt Zertifikat aktivieren
-
----
-
-### B) Betrieb
-
-#### Container-Status prüfen
-
-```bash
-docker compose ps
-docker compose logs -f
-```
-
-#### App neu starten
-
-```bash
-docker compose restart
-```
-
-#### Datenbank-Backup manuell auslösen
-
-Über die Web-Oberfläche: Einstellungen → Backup → „Jetzt sichern"
-
-Oder via Shell:
-```bash
-docker compose exec backend node scripts/backup.js
-```
-
-#### Logs einsehen
-
-```bash
-docker compose logs backend --tail=100
-docker compose logs nginx --tail=50
-```
-
----
-
-### C) Updates (Produktionsbetrieb)
-
-```bash
-cd /volume1/docker/familyfinance
-
-# 1. Neue Version holen
-git pull origin main
-
-# 2. Neue Images bauen und Container neu starten
-docker compose build --no-cache
-docker compose up -d
-
-# 3. Prüfen ob alles läuft
-docker compose ps
-```
-
-> **Hinweis:** Die SQLite-Datenbank und Uploads liegen in Docker-Volumes und werden beim Update nicht überschrieben. Dennoch empfiehlt sich ein Backup vor jedem Update.
-
----
-
-### D) Entwicklungsumgebung (lokal)
-
-#### Voraussetzungen
-- Node.js 20+
-- Git
-- (Optional) Docker Desktop
-
-#### Setup
-
-```bash
-git clone https://github.com/htckusi-ops/FamilyFinance.git
-cd FamilyFinance
-
-# Backend
-cd backend
-cp .env.example .env
-npm install
-npm run dev       # Startet auf Port 3001 mit Hot-Reload
-
-# Frontend (neues Terminal)
-cd ../frontend
-npm install
-npm run dev       # Startet auf Port 5173 mit Hot-Reload
-```
-
-#### Mit Docker lokal entwickeln
-
-```bash
-docker compose -f docker-compose.dev.yml up
-```
-
-- Backend: Hot-Reload via nodemon, Source-Code per Volume gemountet
-- Frontend: Vite Dev Server mit HMR
-- SQLite-Datenbank in `./data/dev.db`
-
-#### Branching-Strategie
-
-```
-main                → Produktionsstand (stabil, getestet)
-develop             → Integrations-Branch
-feature/<name>      → Neue Features
-fix/<name>          → Bugfixes
-claude/<name>       → Automatisierte Claude-Branches
-```
-
-Pull Requests werden von Feature-Branches nach `develop` gestellt, nach Tests nach `main` gemergt.
-
-#### Datenbankmigrationen
-
-```bash
-# Neue Migration erstellen
-npm run migrate:create -- add_savings_goals
-
-# Alle ausstehenden Migrationen ausführen
-npm run migrate:up
-
-# Letzte Migration rückgängig machen
-npm run migrate:down
-```
-
----
-
-### E) Updates während der Entwicklungsphase (NAS)
-
-Während aktiver Entwicklung kann die NAS-Instanz jeweils auf den neuesten Stand gebracht werden:
-
-```bash
-ssh admin@<NAS-IP>
-cd /volume1/docker/familyfinance
-
-git pull origin develop          # oder den aktuellen Feature-Branch
-docker compose build backend frontend
-docker compose up -d
-```
-
-Oder per Makefile-Shortcut (wird im Projekt bereitgestellt):
-```bash
-make update-dev
-```
-
----
-
-### F) Deinstallation / Reset
-
-```bash
-# Container und Netzwerk entfernen (Daten bleiben erhalten)
-docker compose down
-
-# Komplett entfernen inkl. Volumes (ACHTUNG: alle Daten werden gelöscht)
-docker compose down -v
-rm -rf /volume1/docker/familyfinance
-```
-
----
-
-## Projektstruktur (geplant)
-
-```
-FamilyFinance/
-├── backend/
-│   ├── src/
-│   │   ├── routes/          – API-Endpunkte
-│   │   ├── models/          – Datenbankmodelle
-│   │   ├── services/        – Geschäftslogik
-│   │   ├── jobs/            – Cron-Jobs
-│   │   └── middleware/      – Auth, Fehlerbehandlung
-│   ├── migrations/          – DB-Migrationen
-│   ├── scripts/             – Backup, Seed-Daten
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── pages/           – Seiten (Dashboard, Flohmarkt, ...)
-│   │   ├── components/      – Wiederverwendbare UI-Komponenten
-│   │   ├── hooks/           – Custom React Hooks
-│   │   └── api/             – API-Client
-│   └── Dockerfile
-├── nginx/
-│   └── nginx.conf
-├── data/                    – SQLite DB + Uploads (gitignored)
-├── backups/                 – Automatische Backups (gitignored)
-├── docker-compose.yml       – Produktion
-├── docker-compose.dev.yml   – Entwicklung
-├── Makefile                 – Shortcuts
-├── .env.example
-└── KONZEPT.md
-```
-
----
-
-## Offene Punkte / zukünftige Erweiterungen
-
-- Push-Benachrichtigungen via Web Push API (nativ im Browser)
-- Export der Flohmarkt-Daten als CSV / Excel
+## Offene Punkte / Geplante Erweiterungen
+
+- Push-Benachrichtigungen via Web Push API
+- Flohmarkt-Export als CSV
+- OCR für Kassenbons (Tesseract.js)
 - Mehrsprachigkeit (DE / FR / EN)
-- Statistiken / Jahresauswertung mit Diagrammen
-- Wunschliste für Kinder (Kind trägt Wunsch ein, Eltern genehmigen / weisen Punkte zu)
+- Jahresauswertung mit Diagrammen
+- Wunschliste für Kinder (eigenständig, ohne Punkte)

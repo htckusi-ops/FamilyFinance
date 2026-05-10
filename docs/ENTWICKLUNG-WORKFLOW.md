@@ -45,7 +45,7 @@ docker compose -f docker-compose.dev.yml up
 2. Code bearbeiten   → Änderungen sofort im Browser sichtbar
 3. git add / commit  → Änderungen sichern
 4. git push          → auf GitHub hochladen
-5. NAS aktualisieren → (siehe Abschnitt B oder C)
+5. NAS aktualisieren → make update (SSH) oder Container Manager GUI
 ```
 
 ### Ohne Docker lokal (noch schneller)
@@ -95,21 +95,48 @@ Wann immer du die NAS aktualisieren möchtest:
 
 ---
 
-## C) NAS aktualisieren – Manuell über Container Manager GUI
+## C) NAS aktualisieren – Per SSH (empfohlen)
 
-Falls kein Task Scheduler genutzt wird:
+```bash
+ssh admin@<NAS-IP>
+cd /volume1/docker/familyfinance
+make update
+```
+
+`make update` führt automatisch aus:
+1. Datenbank sichern (`data/familyfinance.db.bak`)
+2. Git-Fetch + Reset auf den aktuellen Remote-Branch (verhindert Merge-Konflikte)
+3. Verzeichnisse anlegen falls fehlend (`data/`, `uploads/`, `backups/`)
+4. Docker Images neu bauen (Backend + Frontend)
+5. Container starten
+
+Falls nach dem Update eine `502 Bad Gateway`-Meldung erscheint:
+```bash
+docker compose restart nginx
+```
+
+Für die Entwicklungsumgebung:
+```bash
+make update-dev
+```
+
+## C2) NAS aktualisieren – Manuell über Container Manager GUI
+
+Falls kein SSH gewünscht:
 
 ### Nur Neustart (ohne Code-Änderungen)
 Container Manager → Projekt → `familyfinance` → **Neustart**  
 *(Dauer: ~10 Sekunden)*
 
 ### Nach Code-Änderungen (neue Dateien hochgeladen)
-Container Manager → Projekt → `familyfinance` → **Erstellen**  
-*(Dauer: 2–5 Minuten)*
+1. Neue Dateien via File Station in `familyfinance/` hochladen  
+   ⚠️ **Nicht löschen:** `data/`, `uploads/`, `backups/`
+2. Container Manager → Projekt → `familyfinance` → **Erstellen**  
+   *(Dauer: 2–5 Minuten)*
 
 ### Komplett neu (nach größeren Änderungen)
 1. Container Manager → Projekt → `familyfinance` → **Stoppen**
-2. Neue Dateien via File Station hochladen (ZIP entpacken, Daten-Ordner nicht überschreiben)
+2. Neue Dateien via File Station hochladen (Daten-Ordner nicht überschreiben)
 3. Container Manager → Projekt → `familyfinance` → **Erstellen** → **Starten**
 
 ---
