@@ -131,24 +131,42 @@ router.delete('/items/:id', parentOnly, (req, res) => {
 // Day summary
 router.get('/days/:id/summary', (req, res) => {
   const dayId = Number(req.params.id);
+
+  // Total from all sold items (independent of owner assignment)
+  const totalRow = db.prepare(
+    "SELECT COALESCE(SUM(sold_price),0) as total FROM flea_items WHERE day_id=? AND status='sold'"
+  ).get(dayId);
+
+  // Per-child earnings via LEFT JOIN (items without owners still counted in total above)
   const items = db.prepare(`
     SELECT fi.*, fo.user_id, fo.share_percent, u.name as owner_name
     FROM flea_items fi
-    JOIN flea_item_owners fo ON fo.flea_item_id=fi.id
-    JOIN users u ON fo.user_id=u.id
+    LEFT JOIN flea_item_owners fo ON fo.flea_item_id=fi.id
+    LEFT JOIN users u ON fo.user_id=u.id
     WHERE fi.day_id=?
+    ORDER BY fi.id
   `).all(dayId);
 
   const byChild = {};
+  const seen = new Set();
   for (const item of items) {
-    if (!byChild[item.user_id]) byChild[item.user_id] = { name: item.owner_name, total: 0, items: [] };
-    if (item.status === 'sold') {
-      byChild[item.user_id].total += item.sold_price * item.share_percent / 100;
+    if (item.user_id) {
+      if (!byChild[item.user_id]) byChild[item.user_id] = { name: item.owner_name, total: 0, items: [] };
+      if (item.status === 'sold') {
+        byChild[item.user_id].total += item.sold_price * (item.share_percent || 100) / 100;
+      }
+      if (!seen.has(`${item.id}-${item.user_id}`)) {
+        byChild[item.user_id].items.push(item);
+        seen.add(`${item.id}-${item.user_id}`);
+      }
     }
-    byChild[item.user_id].items.push(item);
   }
 
-  res.json({ byChild, total: Object.values(byChild).reduce((s, c) => s + c.total, 0) });
+  // Items without any owner
+  const unowned = items.filter(i => !i.user_id && !seen.has(String(i.id)));
+  unowned.forEach(i => seen.add(String(i.id)));
+
+  res.json({ byChild, total: totalRow.total, unownedCount: unowned.length });
 });
 
 // PDF labels

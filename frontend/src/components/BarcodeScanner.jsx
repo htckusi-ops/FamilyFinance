@@ -10,9 +10,13 @@ export default function BarcodeScanner({ onResult, onClose }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // mediaDevices is undefined on HTTP in Android (secure context required)
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMode('file');
+      return;
+    }
     if (mode !== 'video' || !videoRef.current) return;
     start(videoRef.current).catch(() => {
-      // getUserMedia failed (HTTP, permission denied, not supported)
       stop();
       setMode('file');
     });

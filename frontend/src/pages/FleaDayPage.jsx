@@ -26,7 +26,7 @@ export default function FleaDayPage() {
 
   useEffect(() => {
     load();
-    api.get('/users').then(r => setChildren(r.data.filter(u => u.role === 'child')));
+    api.get('/users').then(r => setChildren(r.data));
   }, [id]);
 
   async function load() {
@@ -201,15 +201,38 @@ export default function FleaDayPage() {
         <div>
           <div className="card mb-4" style={{ background: 'var(--primary)', color: '#fff' }}>
             <div className="text-sm" style={{ opacity: 0.8 }}>Gesamterlös</div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 800 }}>CHF {summary.total.toFixed(2)}</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800 }}>CHF {Number(summary.total).toFixed(2)}</div>
           </div>
+          {summary.unownedCount > 0 && (
+            <div className="card mb-3" style={{ background: '#fff7ed', borderLeft: '4px solid #f97316' }}>
+              <span style={{ color: '#9a3412', fontWeight: 600, fontSize: '0.9rem' }}>
+                ⚠️ {summary.unownedCount} Artikel ohne zugewiesenes Kind — Erlös nicht aufgeteilt
+              </span>
+            </div>
+          )}
           {Object.values(summary.byChild).map((child, i) => (
             <div key={i} className="card mb-3">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-bold">{child.name}</span>
                 <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--success)' }}>CHF {child.total.toFixed(2)}</span>
               </div>
-              <div className="text-sm text-muted">{child.items.filter(i => i.status === 'sold').length} Artikel verkauft · {child.items.filter(i => i.status === 'unsold').length} nicht verkauft</div>
+              <div className="text-sm text-muted mb-2">
+                {child.items.filter(i => i.status === 'sold').length} verkauft · {child.items.filter(i => i.status === 'unsold').length} nicht verkauft
+              </div>
+              <div className="flex flex-col gap-1">
+                {child.items.filter(i => i.status === 'sold').map(item => (
+                  <div key={item.id} className="flex justify-between text-sm" style={{ borderTop: '1px solid #f0f0f0', paddingTop: 4 }}>
+                    <span>{item.name} <span className="text-muted">({item.category})</span></span>
+                    <span style={{ color: 'var(--success)', fontWeight: 600 }}>CHF {Number(item.sold_price).toFixed(2)}</span>
+                  </div>
+                ))}
+                {child.items.filter(i => i.status === 'unsold').map(item => (
+                  <div key={item.id} className="flex justify-between text-sm" style={{ borderTop: '1px solid #f0f0f0', paddingTop: 4, opacity: 0.5 }}>
+                    <span>{item.name} <span className="text-muted">({item.category})</span></span>
+                    <span>nicht verkauft</span>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
