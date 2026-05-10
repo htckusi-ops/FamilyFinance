@@ -198,6 +198,14 @@ function migrate() {
   try { db.exec('ALTER TABLE users ADD COLUMN age_group TEXT DEFAULT "school"'); } catch {}
   try { db.exec('ALTER TABLE mini_jobs ADD COLUMN image TEXT'); } catch {}
   try { db.exec("ALTER TABLE flea_items ADD COLUMN sold_type TEXT DEFAULT 'cash'"); } catch {}
+  try { db.exec('ALTER TABLE rewards ADD COLUMN require_all INTEGER DEFAULT 0'); } catch {}
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS reward_targets (
+      reward_id INTEGER NOT NULL REFERENCES rewards(id) ON DELETE CASCADE,
+      user_id   INTEGER NOT NULL REFERENCES users(id)  ON DELETE CASCADE,
+      PRIMARY KEY (reward_id, user_id)
+    )`);
+  } catch {}
 
   seedBadges();
   seedDefaultAdmin();
