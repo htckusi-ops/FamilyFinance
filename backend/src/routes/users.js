@@ -23,7 +23,7 @@ router.get('/:id/dashboard', (req, res) => {
   const points = db.prepare('SELECT balance, streak_weeks FROM points WHERE user_id=?').get(uid);
   const goals = db.prepare('SELECT * FROM savings_goals WHERE user_id=? ORDER BY created_at DESC').all(uid);
   const rewardClaims = db.prepare(`
-    SELECT rc.*, r.name as reward_name, r.points_required, r.icon
+    SELECT rc.*, r.name as reward_name, r.points_required, r.image
     FROM reward_claims rc JOIN rewards r ON rc.reward_id=r.id
     WHERE rc.user_id=? ORDER BY rc.claimed_at DESC LIMIT 5
   `).all(uid);
