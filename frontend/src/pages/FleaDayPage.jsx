@@ -21,6 +21,7 @@ export default function FleaDayPage() {
   const [sellModal, setSellModal] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [cashierScanning, setCashierScanning] = useState(false);
   const [summary, setSummary] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', barcode: '', category: 'Spielzeug', condition: 'gut', suggested_price: '', owners: [] });
   const [soldPrice, setSoldPrice] = useState('');
@@ -81,9 +82,37 @@ export default function FleaDayPage() {
 
   function onScan(code) {
     setScanning(false);
+    if (code.startsWith('item:')) {
+      toast('Das ist ein Artikel-QR-Code – bitte in der Kasse scannen', 'info');
+      return;
+    }
     setForm(f => ({ ...f, barcode: code, name: '', description: '' }));
     setAddModal(true);
     lookupBarcode(code);
+  }
+
+  function onCashierScan(code) {
+    setCashierScanning(false);
+    // Accept both our label QR "item:123" and product barcodes stored on items
+    let found = null;
+    if (code.startsWith('item:')) {
+      const itemId = Number(code.replace('item:', ''));
+      found = available.find(i => i.id === itemId);
+      if (!found) {
+        const sold_ = sold.find(i => i.id === itemId);
+        if (sold_) { toast(`"${sold_.name}" wurde bereits verkauft`, 'error'); return; }
+      }
+    } else {
+      // product barcode — search available items by stored barcode
+      found = available.find(i => i.barcode === code);
+    }
+    if (found) {
+      setSellModal(found);
+      setSoldPrice(String(found.suggested_price));
+      setSoldType('cash');
+    } else {
+      toast('Artikel nicht gefunden', 'error');
+    }
   }
 
   async function addItem() {
@@ -170,6 +199,12 @@ export default function FleaDayPage() {
   const sold = items.filter(i => i.status === 'sold');
   const unsold = items.filter(i => i.status === 'unsold');
 
+  function Thumb({ photo, size = 48 }) {
+    return photo
+      ? <img src={photo} alt="" style={{ width: size, height: size, borderRadius: 8, objectFit: 'cover', flexShrink: 0, background: '#e5e7eb' }} />
+      : <div style={{ width: size, height: size, borderRadius: 8, background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: size * 0.45 }}>📦</div>;
+  }
+
   return (
     <div className="page">
       <div className="mb-4">
@@ -211,8 +246,9 @@ export default function FleaDayPage() {
             {items.map(item => (
               <div key={item.id} className="card">
                 <div className="flex justify-between items-start gap-2">
-                  <div className="flex-1">
-                    <div className="font-bold">{item.name}</div>
+                  <Thumb photo={item.photo} size={52} />
+                  <div className="flex-1" style={{ minWidth: 0 }}>
+                    <div className="font-bold" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
                     <div className="text-sm text-muted">{item.category} · {item.condition} · {item.owner_names || '—'}</div>
                     <div className="text-sm" style={{ color: 'var(--primary)', fontWeight: 700 }}>
                       CHF {item.suggested_price}
@@ -255,16 +291,27 @@ export default function FleaDayPage() {
       {/* Cashier tab */}
       {tab === 'cashier' && (
         <div>
+          <div className="flex gap-2 mb-4">
+            <button className="btn-primary w-full" onClick={() => setCashierScanning(s => !s)}>
+              📷 {cashierScanning ? 'Scan beenden' : 'Artikel scannen'}
+            </button>
+          </div>
+          {cashierScanning && (
+            <div className="card mb-4">
+              <BarcodeScanner onResult={onCashierScan} onClose={() => setCashierScanning(false)} />
+            </div>
+          )}
           <h2 className="font-bold mb-3">🛒 Verfügbare Artikel</h2>
           <div className="flex flex-col gap-2">
             {available.map(item => (
-              <div key={item.id} className="card flex justify-between items-center gap-3">
-                <div>
-                  <div className="font-bold">{item.name}</div>
+              <div key={item.id} className="card flex items-center gap-3">
+                <Thumb photo={item.photo} size={56} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="font-bold" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
                   <div className="text-sm text-muted">{item.owner_names}</div>
                   <div className="font-semibold" style={{ color: 'var(--primary)' }}>CHF {item.suggested_price}</div>
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1" style={{ flexShrink: 0 }}>
                   <button className="btn-primary" style={{ padding: '8px 16px' }} onClick={() => { setSellModal(item); setSoldPrice(String(item.suggested_price)); setSoldType('cash'); }}>
                     💰 Verkaufen
                   </button>
@@ -281,15 +328,15 @@ export default function FleaDayPage() {
               <h2 className="font-bold mb-3">✓ Bereits verkauft</h2>
               <div className="flex flex-col gap-2">
                 {sold.map(item => (
-                  <div key={item.id} className="card flex justify-between items-center gap-3" style={{ opacity: 0.8 }}>
-                    <div>
-                      <div className="font-bold">{item.name}</div>
-                      <div className="text-sm text-muted">{item.owner_names}</div>
+                  <div key={item.id} className="card flex items-center gap-3" style={{ opacity: 0.8 }}>
+                    <Thumb photo={item.photo} size={44} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="font-bold" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
                       <div className="font-semibold" style={{ color: 'var(--success)' }}>
                         {item.sold_type === 'tausch' ? '🔄 Tausch' : `CHF ${item.sold_price}`}
                       </div>
                     </div>
-                    <button style={{ background: '#fef3c7', color: '#92400e', padding: '8px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600 }} onClick={() => undoSell(item)}>
+                    <button style={{ background: '#fef3c7', color: '#92400e', padding: '8px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, flexShrink: 0 }} onClick={() => undoSell(item)}>
                       ↩️ Rückgängig
                     </button>
                   </div>
@@ -404,7 +451,7 @@ export default function FleaDayPage() {
             <input type="number" placeholder="Richtpreis (CHF)" value={editItem.suggested_price}
               onChange={e => setEditItem(i => ({ ...i, suggested_price: e.target.value }))} />
             {editItem.photo && (
-              <img src={editItem.photo} alt="" style={{ maxHeight: 80, borderRadius: 8, objectFit: 'cover' }} />
+              <img src={editItem.photo} alt="" style={{ width: '100%', maxHeight: 200, borderRadius: 10, objectFit: 'contain', background: '#f3f4f6' }} />
             )}
             <div>
               <label className="text-sm text-muted">Neues Foto (optional)</label>
