@@ -1,8 +1,16 @@
-.PHONY: up down logs update update-dev build shell-backend init
+.PHONY: up down logs update update-dev build shell-backend init pull
+
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
 init:
 	mkdir -p data backups uploads
 	@echo "Verzeichnisse erstellt. Weiter mit: make up"
+
+pull:
+	@echo "Synchronisiere mit Remote (verwirft lokale Änderungen)..."
+	git fetch origin $(BRANCH)
+	git reset --hard origin/$(BRANCH)
+	@echo "Branch '$(BRANCH)' ist jetzt aktuell."
 
 up: init
 	docker compose up -d
@@ -16,14 +24,12 @@ logs:
 build:
 	docker compose build --no-cache
 
-update:
-	git pull origin main
-	docker compose build --no-cache
+update: pull init
+	docker compose build backend frontend
 	docker compose up -d
 	docker compose ps
 
-update-dev:
-	git pull
+update-dev: pull
 	docker compose -f docker-compose.dev.yml build
 	docker compose -f docker-compose.dev.yml up -d
 
