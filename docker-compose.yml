@@ -1,8 +1,15 @@
 services:
   backend:
     build: ./backend
+    container_name: familyfinance-backend
     restart: unless-stopped
-    env_file: .env
+    environment:
+      - TZ=Europe/Zurich
+      - JWT_SECRET=bitte-aendern-langer-zufaelliger-string
+      - PORT=3001
+      - TELEGRAM_BOT_TOKEN=
+      - TELEGRAM_CHAT_ID=
+      - BACKUP_PATH=/app/backups
     volumes:
       - ./data:/app/data
       - ./backups:/app/backups
@@ -12,12 +19,14 @@ services:
 
   frontend:
     build: ./frontend
+    container_name: familyfinance-frontend
     restart: unless-stopped
     expose:
       - "80"
 
   nginx:
     image: nginx:alpine
+    container_name: familyfinance-nginx
     restart: unless-stopped
     ports:
       - "3000:80"
