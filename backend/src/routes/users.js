@@ -96,7 +96,13 @@ router.post('/:id/photo', parentOnly, upload.single('photo'), (req, res) => {
 });
 
 router.delete('/:id', parentOnly, (req, res) => {
-  db.prepare('DELETE FROM users WHERE id=?').run(Number(req.params.id));
+  const uid = Number(req.params.id);
+  const target = db.prepare('SELECT role FROM users WHERE id=?').get(uid);
+  if (target?.role === 'parent') {
+    const parentCount = db.prepare("SELECT COUNT(*) as n FROM users WHERE role='parent'").get().n;
+    if (parentCount <= 1) return res.status(400).json({ error: 'Letztes Elternteil kann nicht gelöscht werden' });
+  }
+  db.prepare('DELETE FROM users WHERE id=?').run(uid);
   res.json({ ok: true });
 });
 

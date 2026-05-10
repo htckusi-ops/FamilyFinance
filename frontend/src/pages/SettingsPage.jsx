@@ -145,7 +145,7 @@ export default function SettingsPage() {
                   <div className="text-sm text-muted">{u.role === 'parent' ? 'Elternteil' : 'Kind'}{u.pin_required ? ' · PIN' : ''}</div>
                 </div>
               </div>
-              {u.id !== user.id && (
+              {u.id !== user.id && !(u.role === 'parent' && users.filter(x => x.role === 'parent').length <= 1) && (
                 <button style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 8, fontSize: '0.8rem' }}
                   onClick={() => deleteUser(u.id)}>Löschen</button>
               )}
