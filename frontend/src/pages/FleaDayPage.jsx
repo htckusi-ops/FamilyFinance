@@ -17,12 +17,14 @@ export default function FleaDayPage() {
   const [children, setChildren] = useState([]);
   const [tab, setTab] = useState('items');
   const [addModal, setAddModal] = useState(false);
+  const [editItem, setEditItem] = useState(null); // item being edited
   const [sellModal, setSellModal] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [summary, setSummary] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', barcode: '', category: 'Spielzeug', condition: 'gut', suggested_price: '', owners: [] });
   const [soldPrice, setSoldPrice] = useState('');
   const photoRef = useRef();
+  const editPhotoRef = useRef();
 
   useEffect(() => {
     load();
@@ -80,6 +82,29 @@ export default function FleaDayPage() {
 
   async function deleteItem(item) {
     await api.delete(`/flea/items/${item.id}`);
+    load();
+  }
+
+  function openEdit(item) {
+    const ownerIds = item.owner_ids ? String(item.owner_ids).split(',').map(Number) : [];
+    const ownerNames = item.owner_names ? String(item.owner_names).split(',') : [];
+    setEditItem({
+      ...item,
+      owners: ownerIds.map((uid, i) => ({ user_id: uid, name: ownerNames[i] || '' })),
+    });
+  }
+
+  async function saveEdit() {
+    const fd = new FormData();
+    ['name','description','barcode','category','condition','suggested_price'].forEach(k => {
+      if (editItem[k] !== undefined) fd.append(k, editItem[k]);
+    });
+    if (editPhotoRef.current?.files[0]) fd.append('photo', editPhotoRef.current.files[0]);
+    await api.patch(`/flea/items/${editItem.id}`, fd);
+    // update owners: delete all, re-insert
+    // handled via separate endpoint not yet needed – just update fields for now
+    toast('Artikel aktualisiert ✓', 'success');
+    setEditItem(null);
     load();
   }
 
@@ -152,9 +177,12 @@ export default function FleaDayPage() {
                     <span className={`tag ${item.status === 'sold' ? 'tag-green' : item.status === 'unsold' ? 'tag-red' : 'tag-blue'}`}>
                       {item.status === 'sold' ? '✓ Verkauft' : item.status === 'unsold' ? '✗ Nicht verk.' : 'Verfügbar'}
                     </span>
-                    {item.status === 'available' && (
-                      <button style={{ background: '#fee2e2', color: '#991b1b', padding: '4px 8px', borderRadius: 8, fontSize: '0.75rem' }} onClick={() => deleteItem(item)}>Löschen</button>
-                    )}
+                    <div className="flex gap-1">
+                      <button style={{ background: '#e0e7ef', color: '#374151', padding: '4px 8px', borderRadius: 8, fontSize: '0.75rem' }} onClick={() => openEdit(item)}>✏️</button>
+                      {item.status === 'available' && (
+                        <button style={{ background: '#fee2e2', color: '#991b1b', padding: '4px 8px', borderRadius: 8, fontSize: '0.75rem' }} onClick={() => deleteItem(item)}>🗑️</button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -162,9 +190,15 @@ export default function FleaDayPage() {
           </div>
 
           {available.length > 0 && (
-            <a href={`/api/flea/days/${id}/labels.pdf`} target="_blank" rel="noreferrer">
-              <button className="btn-primary w-full mt-4">🖨️ Etiketten drucken (PDF)</button>
-            </a>
+            <button className="btn-primary w-full mt-4" onClick={async () => {
+              try {
+                const res = await api.get(`/flea/days/${id}/labels.pdf`, { responseType: 'blob' });
+                const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+                const a = document.createElement('a');
+                a.href = url; a.download = `etiketten-${day?.date || id}.pdf`; a.click();
+                URL.revokeObjectURL(url);
+              } catch { toast('PDF-Fehler', 'error'); }
+            }}>🖨️ Etiketten drucken (PDF)</button>
           )}
         </>
       )}
@@ -270,6 +304,34 @@ export default function FleaDayPage() {
           <button className="btn-primary w-full" onClick={addItem}>Artikel speichern</button>
         </div>
       </Modal>
+
+      {/* Edit item modal */}
+      {editItem && (
+        <Modal open title={`✏️ ${editItem.name}`} onClose={() => setEditItem(null)}>
+          <div className="flex flex-col gap-3">
+            <input placeholder="Artikelname" value={editItem.name}
+              onChange={e => setEditItem(i => ({ ...i, name: e.target.value }))} />
+            <input placeholder="Beschreibung" value={editItem.description || ''}
+              onChange={e => setEditItem(i => ({ ...i, description: e.target.value }))} />
+            <select value={editItem.category} onChange={e => setEditItem(i => ({ ...i, category: e.target.value }))}>
+              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+            <select value={editItem.condition} onChange={e => setEditItem(i => ({ ...i, condition: e.target.value }))}>
+              {CONDITIONS.map(c => <option key={c}>{c}</option>)}
+            </select>
+            <input type="number" placeholder="Richtpreis (CHF)" value={editItem.suggested_price}
+              onChange={e => setEditItem(i => ({ ...i, suggested_price: e.target.value }))} />
+            {editItem.photo && (
+              <img src={editItem.photo} alt="" style={{ maxHeight: 80, borderRadius: 8, objectFit: 'cover' }} />
+            )}
+            <div>
+              <label className="text-sm text-muted">Neues Foto (optional)</label>
+              <input type="file" ref={editPhotoRef} accept="image/*" capture="environment" style={{ padding: 8 }} />
+            </div>
+            <button className="btn-primary w-full" onClick={saveEdit}>Speichern</button>
+          </div>
+        </Modal>
+      )}
 
       {/* Sell modal */}
       {sellModal && (

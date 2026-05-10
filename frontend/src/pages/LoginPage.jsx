@@ -72,7 +72,7 @@ export default function LoginPage() {
                 className="pop-in">
                 <Avatar user={child} size={64} />
                 <span style={{ fontWeight: 700, fontSize: '1rem' }}>{child.name}</span>
-                {child.pin_required && <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>🔒 PIN</span>}
+                {!!child.pin_required && <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>🔒 PIN</span>}
               </button>
             ))}
           </div>

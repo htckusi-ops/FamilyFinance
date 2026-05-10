@@ -19,6 +19,7 @@ export default function PointsPage({ childId }) {
   const [convertModal, setConvertModal] = useState(null); // 'points_to_chf' | 'chf_to_points'
   const [convertAmount, setConvertAmount] = useState('');
   const [newJob, setNewJob] = useState({ name: '', points: '', recurrence: 'manual', job_type: 'extra', image: '' });
+  const [editJob, setEditJob] = useState(null);
   const [freeAward, setFreeAward] = useState({ delta: '', description: '' });
   const [deduct, setDeduct] = useState({ points: '5', reason: '' });
 
@@ -115,6 +116,18 @@ export default function PointsPage({ childId }) {
     api.get('/points/jobs').then(r => setJobs(r.data));
   }
 
+  async function saveEditJob() {
+    await api.patch(`/points/jobs/${editJob.id}`, {
+      name: editJob.name,
+      points: Number(editJob.points) || 0,
+      recurrence: editJob.recurrence,
+      image: editJob.image || null,
+    });
+    toast('Job aktualisiert ✓', 'success');
+    setEditJob(null);
+    api.get('/points/jobs').then(r => setJobs(r.data));
+  }
+
   function JobList({ items, isDuty }) {
     if (items.length === 0) return <p className="text-muted text-sm">Noch keine {isDuty ? 'Pflichten' : 'Extra-Jobs'} definiert</p>;
     return (
@@ -147,6 +160,7 @@ export default function PointsPage({ childId }) {
                     onClick={() => awardJob(job)}>
                     ✓
                   </button>
+                  <button style={{ background: '#e0f2fe', color: '#0369a1', padding: '6px 10px', borderRadius: 8 }} onClick={() => setEditJob({ ...job })}>✏️</button>
                   <button style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 8 }} onClick={() => deleteJob(job.id)}>✕</button>
                 </>
               )}
@@ -374,6 +388,36 @@ export default function PointsPage({ childId }) {
             Abzug bestätigen
           </button>
         </div>
+      </Modal>
+
+      <Modal open={!!editJob} title="Job bearbeiten" onClose={() => setEditJob(null)}>
+        {editJob && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <div style={{ fontSize: '2.8rem', minWidth: 56, textAlign: 'center', background: '#f8faff', borderRadius: 14, padding: '8px 0' }}>
+                {editJob.image || (editJob.job_type === 'duty' ? '🏠' : '⭐')}
+              </div>
+              <input
+                placeholder="Emoji (z.B. 🚗)"
+                value={editJob.image || ''}
+                onChange={e => setEditJob(j => ({ ...j, image: e.target.value }))}
+                style={{ flex: 1, fontSize: '1.4rem' }}
+                maxLength={4}
+              />
+            </div>
+            <input placeholder="Name" value={editJob.name}
+              onChange={e => setEditJob(j => ({ ...j, name: e.target.value }))} />
+            <input type="number" placeholder={editJob.job_type === 'duty' ? 'Punkte (0 = nur bestätigen)' : 'Punkte'}
+              value={editJob.points}
+              onChange={e => setEditJob(j => ({ ...j, points: e.target.value }))} />
+            <select value={editJob.recurrence} onChange={e => setEditJob(j => ({ ...j, recurrence: e.target.value }))}>
+              <option value="manual">Manuell (bei Bedarf)</option>
+              <option value="daily">Täglich</option>
+              <option value="weekly">Wöchentlich</option>
+            </select>
+            <button className="btn-primary w-full" onClick={saveEditJob}>Speichern ✓</button>
+          </div>
+        )}
       </Modal>
 
       <Modal open={awardModal} title="Spontane Punktvergabe" onClose={() => setAwardModal(false)}>
