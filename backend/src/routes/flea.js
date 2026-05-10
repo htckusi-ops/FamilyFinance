@@ -94,7 +94,8 @@ router.post('/items/:id/sell', parentOnly, (req, res) => {
   const id = Number(req.params.id);
   const { sold_price, sold_type } = req.body;
   const type = sold_type === 'tausch' ? 'tausch' : 'cash';
-  const price = type === 'tausch' ? 0 : Number(sold_price) || 0;
+  // For tausch: sold_price holds optional partial amount (+/-); for cash: full price
+  const price = Number(sold_price) || 0;
 
   db.prepare("UPDATE flea_items SET status='sold', sold_price=?, sold_type=? WHERE id=?").run(price, type, id);
 
@@ -107,7 +108,17 @@ router.post('/items/:id/sell', parentOnly, (req, res) => {
       const earning = price * owner.share_percent / 100;
       db.prepare('UPDATE accounts SET balance=balance+? WHERE user_id=?').run(earning, owner.user_id);
       db.prepare('INSERT INTO transactions (user_id,amount,type,description) VALUES (?,?,?,?)')
-        .run(owner.user_id, earning, 'flea_sale', `Flohmarkt-Erlös`);
+        .run(owner.user_id, earning, 'flea_sale', 'Flohmarkt-Erlös');
+      checkBadge(owner.user_id, 'flea_first_sale');
+    }
+  } else if (type === 'tausch' && price !== 0) {
+    // Partial amount on a trade: credit (positive) or debit (negative) per owner share
+    const desc = price > 0 ? 'Flohmarkt-Tausch (Aufpreis erhalten)' : 'Flohmarkt-Tausch (Differenz bezahlt)';
+    for (const owner of owners) {
+      const earning = price * owner.share_percent / 100;
+      db.prepare('UPDATE accounts SET balance=balance+? WHERE user_id=?').run(earning, owner.user_id);
+      db.prepare('INSERT INTO transactions (user_id,amount,type,description) VALUES (?,?,?,?)')
+        .run(owner.user_id, earning, 'flea_sale', desc);
       checkBadge(owner.user_id, 'flea_first_sale');
     }
   } else {
@@ -123,7 +134,8 @@ router.post('/items/:id/undo-sell', parentOnly, (req, res) => {
   const item = db.prepare('SELECT * FROM flea_items WHERE id=?').get(id);
   if (!item || item.status !== 'sold') return res.status(400).json({ error: 'Artikel ist nicht verkauft' });
 
-  if (item.sold_type !== 'tausch' && item.sold_price > 0) {
+  // Reverse any credited/debited amount (cash sales and tausch partial amounts)
+  if (item.sold_price && item.sold_price !== 0) {
     const owners = db.prepare(
       'SELECT fo.user_id, fo.share_percent FROM flea_item_owners fo WHERE fo.flea_item_id=?'
     ).all(id);
@@ -131,7 +143,7 @@ router.post('/items/:id/undo-sell', parentOnly, (req, res) => {
       const earning = item.sold_price * owner.share_percent / 100;
       db.prepare('UPDATE accounts SET balance=balance-? WHERE user_id=?').run(earning, owner.user_id);
       db.prepare('INSERT INTO transactions (user_id,amount,type,description) VALUES (?,?,?,?)')
-        .run(owner.user_id, -earning, 'flea_sale_undo', `Flohmarkt-Verkauf storniert`);
+        .run(owner.user_id, -earning, 'flea_sale_undo', 'Flohmarkt-Verkauf storniert');
     }
   }
 

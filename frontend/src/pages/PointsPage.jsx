@@ -133,38 +133,38 @@ export default function PointsPage({ childId }) {
     return (
       <div className="flex flex-col gap-2">
         {items.map(job => (
-          <div key={job.id} className="flex items-center gap-3"
-            style={{ background: isDuty ? '#f0fff4' : '#f8faff', padding: '10px 12px', borderRadius: 14, borderLeft: `3px solid ${isDuty ? 'var(--success)' : 'var(--primary)'}` }}>
-            {/* Emoji/Bild */}
-            <div style={{ fontSize: '1.8rem', minWidth: 36, textAlign: 'center', lineHeight: 1 }}>
+          <div key={job.id} className="flex items-center gap-2"
+            style={{ background: isDuty ? '#f0fff4' : '#f8faff', padding: '8px 10px', borderRadius: 14, borderLeft: `3px solid ${isDuty ? 'var(--success)' : 'var(--primary)'}` }}>
+            {/* Emoji */}
+            <div style={{ fontSize: '1.5rem', width: 32, textAlign: 'center', lineHeight: 1, flexShrink: 0 }}>
               {job.image || (isDuty ? '🏠' : '⭐')}
             </div>
-            {/* Name + Wiederholung */}
+            {/* Name + tag + Wiederholung in einer Spalte */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="font-semibold" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{job.name}</div>
-              <div className="text-muted text-sm">
-                {job.recurrence === 'daily' ? 'täglich' : job.recurrence === 'weekly' ? 'wöchentlich' : 'manuell'}
+              <div className="font-semibold" style={{ fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{job.name}</div>
+              <div className="flex items-center gap-1 mt-1" style={{ flexWrap: 'nowrap' }}>
+                {isDuty && job.points === 0
+                  ? <span className="tag tag-green" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>Pflicht</span>
+                  : <span className="tag tag-blue" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>+{job.points} ⭐</span>
+                }
+                <span className="text-muted" style={{ fontSize: '0.7rem' }}>
+                  {job.recurrence === 'daily' ? 'tägl.' : job.recurrence === 'weekly' ? 'wöch.' : 'manuell'}
+                </span>
               </div>
             </div>
-            {/* Punkte-Tag + Aktions-Buttons */}
-            <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
-              {isDuty && job.points === 0
-                ? <span className="tag tag-green">Pflicht</span>
-                : <span className="tag tag-blue">+{job.points} ⭐</span>
-              }
-              {isParent && (
-                <>
-                  <button
-                    className={isDuty && job.points === 0 ? 'btn-ghost' : 'btn-primary'}
-                    style={{ padding: '6px 14px', fontSize: '1rem', ...(isDuty && job.points === 0 ? { borderColor: 'var(--success)', color: 'var(--success)' } : {}) }}
-                    onClick={() => awardJob(job)}>
-                    ✓
-                  </button>
-                  <button style={{ background: '#e0f2fe', color: '#0369a1', padding: '6px 10px', borderRadius: 8 }} onClick={() => setEditJob({ ...job })}>✏️</button>
-                  <button style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 8 }} onClick={() => deleteJob(job.id)}>✕</button>
-                </>
-              )}
-            </div>
+            {/* Aktions-Buttons – kompakt */}
+            {isParent && (
+              <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+                <button
+                  className={isDuty && job.points === 0 ? 'btn-ghost' : 'btn-primary'}
+                  style={{ padding: '5px 10px', fontSize: '0.9rem', ...(isDuty && job.points === 0 ? { borderColor: 'var(--success)', color: 'var(--success)' } : {}) }}
+                  onClick={() => awardJob(job)}>
+                  ✓
+                </button>
+                <button style={{ background: '#e0f2fe', color: '#0369a1', padding: '5px 8px', borderRadius: 8, fontSize: '0.85rem' }} onClick={() => setEditJob({ ...job })}>✏️</button>
+                <button style={{ background: '#fee2e2', color: '#991b1b', padding: '5px 8px', borderRadius: 8, fontSize: '0.85rem' }} onClick={() => deleteJob(job.id)}>✕</button>
+              </div>
+            )}
           </div>
         ))}
       </div>

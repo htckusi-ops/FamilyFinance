@@ -26,6 +26,7 @@ export default function FleaDayPage() {
   const [form, setForm] = useState({ name: '', description: '', barcode: '', category: 'Spielzeug', condition: 'gut', suggested_price: '', owners: [] });
   const [soldPrice, setSoldPrice] = useState('');
   const [soldType, setSoldType] = useState('cash');
+  const [tauschPartial, setTauschPartial] = useState('');
   const photoRef = useRef();
   const editPhotoRef = useRef();
 
@@ -135,12 +136,15 @@ export default function FleaDayPage() {
       await api.post(`/flea/items/${sellModal.id}/sell`, { sold_price: Number(soldPrice), sold_type: 'cash' });
       toast(`Verkauft für CHF ${soldPrice}! 💰`, 'success');
     } else {
-      await api.post(`/flea/items/${sellModal.id}/sell`, { sold_price: 0, sold_type: 'tausch' });
-      toast(`Als Tausch markiert! 🔄`, 'success');
+      const partial = Number(tauschPartial) || 0;
+      await api.post(`/flea/items/${sellModal.id}/sell`, { sold_price: partial, sold_type: 'tausch' });
+      const partialNote = partial > 0 ? ` + CHF ${partial.toFixed(2)}` : partial < 0 ? ` − CHF ${Math.abs(partial).toFixed(2)}` : '';
+      toast(`Tausch erfasst${partialNote}! 🔄`, 'success');
     }
     setSellModal(null);
     setSoldPrice('');
     setSoldType('cash');
+    setTauschPartial('');
     load();
   }
 
@@ -252,7 +256,14 @@ export default function FleaDayPage() {
                     <div className="text-sm text-muted">{item.category} · {item.condition} · {item.owner_names || '—'}</div>
                     <div className="text-sm" style={{ color: 'var(--primary)', fontWeight: 700 }}>
                       CHF {item.suggested_price}
-                      {item.sold_price && <span style={{ color: 'var(--success)' }}> → CHF {item.sold_price}</span>}
+                      {item.status === 'sold' && item.sold_type === 'tausch' && (
+                        <span style={{ color: '#7c3aed' }}>
+                          {' '}→ 🔄{item.sold_price && item.sold_price !== 0 ? ` ${item.sold_price > 0 ? '+' : ''}CHF ${Number(item.sold_price).toFixed(2)}` : ''}
+                        </span>
+                      )}
+                      {item.status === 'sold' && item.sold_type !== 'tausch' && item.sold_price != null && (
+                        <span style={{ color: 'var(--success)' }}> → CHF {Number(item.sold_price).toFixed(2)}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-col gap-1 items-end">
@@ -332,8 +343,11 @@ export default function FleaDayPage() {
                     <Thumb photo={item.photo} size={44} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="font-bold" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
-                      <div className="font-semibold" style={{ color: 'var(--success)' }}>
-                        {item.sold_type === 'tausch' ? '🔄 Tausch' : `CHF ${item.sold_price}`}
+                      <div className="font-semibold">
+                        {item.sold_type === 'tausch'
+                          ? <span style={{ color: '#7c3aed' }}>🔄 Tausch{item.sold_price && item.sold_price !== 0 ? ` ${item.sold_price > 0 ? '+' : ''}CHF ${Number(item.sold_price).toFixed(2)}` : ''}</span>
+                          : <span style={{ color: 'var(--success)' }}>CHF {Number(item.sold_price).toFixed(2)}</span>
+                        }
                       </div>
                     </div>
                     <button style={{ background: '#fef3c7', color: '#92400e', padding: '8px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, flexShrink: 0 }} onClick={() => undoSell(item)}>
@@ -464,7 +478,7 @@ export default function FleaDayPage() {
 
       {/* Sell modal */}
       {sellModal && (
-        <Modal open title={`Verkaufen: ${sellModal.name}`} onClose={() => { setSellModal(null); setSoldType('cash'); setSoldPrice(''); }}>
+        <Modal open title={`Verkaufen: ${sellModal.name}`} onClose={() => { setSellModal(null); setSoldType('cash'); setSoldPrice(''); setTauschPartial(''); }}>
           <div className="flex gap-2 mb-4">
             {[['cash', '💰 Preis'], ['tausch', '🔄 Tausch']].map(([val, label]) => (
               <button key={val} onClick={() => setSoldType(val)}
@@ -487,11 +501,25 @@ export default function FleaDayPage() {
             </>
           ) : (
             <>
-              <div style={{ background: '#ede9fe', borderRadius: 10, padding: '12px 14px', color: '#6d28d9', fontSize: '0.9rem' }}>
-                Der Artikel wird als Tausch markiert. Es wird kein Geld gutgeschrieben.
+              <div style={{ background: '#ede9fe', borderRadius: 10, padding: '10px 14px', color: '#6d28d9', fontSize: '0.88rem', marginBottom: 12 }}>
+                Artikel wird als Tausch markiert (zählt als verkauft).
               </div>
+              <label className="text-sm font-semibold mb-1" style={{ display: 'block' }}>
+                Teilbetrag (optional)
+              </label>
+              <input type="number" step="0.01"
+                placeholder="z.B. +5.00 (erhalten) oder -3.00 (bezahlt)"
+                value={tauschPartial}
+                onChange={e => setTauschPartial(e.target.value)} />
+              {tauschPartial !== '' && Number(tauschPartial) !== 0 && (
+                <div style={{ background: Number(tauschPartial) > 0 ? '#f0fff4' : '#fff1f2', borderRadius: 8, padding: '8px 12px', marginTop: 8, fontSize: '0.85rem', color: Number(tauschPartial) > 0 ? 'var(--success)' : '#be123c' }}>
+                  {Number(tauschPartial) > 0
+                    ? `+ CHF ${Number(tauschPartial).toFixed(2)} wird dem Kind gutgeschrieben`
+                    : `− CHF ${Math.abs(Number(tauschPartial)).toFixed(2)} wird vom Guthaben abgezogen`}
+                </div>
+              )}
               <button style={{ background: '#7c3aed', color: '#fff', borderRadius: 12, padding: '12px', fontWeight: 700, width: '100%', marginTop: 12 }} onClick={sellItem}>
-                🔄 Als Tausch bestätigen
+                🔄 Tausch bestätigen
               </button>
             </>
           )}
