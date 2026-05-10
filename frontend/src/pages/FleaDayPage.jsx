@@ -20,6 +20,7 @@ export default function FleaDayPage() {
   const [editItem, setEditItem] = useState(null); // item being edited
   const [sellModal, setSellModal] = useState(null);
   const [scanning, setScanning] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
   const [summary, setSummary] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', barcode: '', category: 'Spielzeug', condition: 'gut', suggested_price: '', owners: [] });
   const [soldPrice, setSoldPrice] = useState('');
@@ -45,11 +46,43 @@ export default function FleaDayPage() {
     setSummary(r.data);
   }
 
+  async function lookupBarcode(code) {
+    setLookupLoading(true);
+    try {
+      // Try Open Food Facts (food, packaged goods, household products)
+      const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`);
+      const data = await r.json();
+      if (data.status === 1 && data.product) {
+        const p = data.product;
+        const name = p.product_name_de || p.product_name || '';
+        setForm(f => ({ ...f, name, description: p.brands || f.description }));
+        if (name) { toast(`Produkt gefunden: ${name} 🎉`, 'success'); return; }
+      }
+      // Try Open Library for ISBN (978/979 prefix)
+      if (code.startsWith('978') || code.startsWith('979')) {
+        const r2 = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${code}&format=json&jscmd=data`);
+        const d2 = await r2.json();
+        const book = d2[`ISBN:${code}`];
+        if (book?.title) {
+          const authors = book.authors?.map(a => a.name).join(', ') || '';
+          setForm(f => ({ ...f, name: book.title, description: authors, category: 'Bücher' }));
+          toast(`Buch gefunden: ${book.title} 📚`, 'success');
+          return;
+        }
+      }
+      toast('Barcode erkannt – bitte Name manuell eingeben', 'info');
+    } catch {
+      toast('Barcode erkannt – bitte Name manuell eingeben', 'info');
+    } finally {
+      setLookupLoading(false);
+    }
+  }
+
   function onScan(code) {
     setScanning(false);
-    setForm(f => ({ ...f, barcode: code, name: code }));
+    setForm(f => ({ ...f, barcode: code, name: '', description: '' }));
     setAddModal(true);
-    toast(`Barcode: ${code}`, 'success');
+    lookupBarcode(code);
   }
 
   async function addItem() {
@@ -273,11 +306,20 @@ export default function FleaDayPage() {
       )}
 
       {/* Add item modal */}
-      <Modal open={addModal} title="Artikel hinzufügen" onClose={() => setAddModal(false)}>
+      <Modal open={addModal} title="Artikel hinzufügen" onClose={() => { setAddModal(false); setLookupLoading(false); setForm({ name: '', description: '', barcode: '', category: 'Spielzeug', condition: 'gut', suggested_price: '', owners: [] }); }}>
         <div className="flex flex-col gap-3">
-          <input placeholder="Artikelname" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          {form.barcode && (
+            <div style={{ background: '#f0f4ff', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '1.1rem' }}>🔢</span>
+              <div style={{ flex: 1 }}>
+                <div className="text-sm font-semibold" style={{ color: 'var(--primary)' }}>Barcode</div>
+                <div className="text-sm" style={{ fontFamily: 'monospace', letterSpacing: 1 }}>{form.barcode}</div>
+              </div>
+              {lookupLoading && <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>🔍 Suche…</span>}
+            </div>
+          )}
+          <input placeholder="Artikelname *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus={!!form.barcode} />
           <input placeholder="Beschreibung (optional)" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-          {form.barcode && <div className="text-sm text-muted">Barcode: {form.barcode}</div>}
           <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
             {CATEGORIES.map(c => <option key={c}>{c}</option>)}
           </select>
