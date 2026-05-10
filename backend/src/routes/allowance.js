@@ -108,6 +108,21 @@ router.delete('/:id/goals/:gid', parentOnly, (req, res) => {
   res.json({ ok: true });
 });
 
+// Record a child's purchase (deduct from balance, optional photo)
+router.post('/:id/expense', parentOnly, require('../middleware/upload').single('photo'), (req, res) => {
+  const uid = Number(req.params.id);
+  const amount = Math.abs(Number(req.body.amount));
+  const description = req.body.description || 'Ausgabe';
+  if (!amount) return res.status(400).json({ error: 'Betrag fehlt' });
+
+  const photo = req.file ? `/uploads/${req.file.filename}` : null;
+  db.prepare('UPDATE accounts SET balance=balance-? WHERE user_id=?').run(amount, uid);
+  const r = db.prepare(
+    'INSERT INTO transactions (user_id,amount,type,description,receipt_photo) VALUES (?,?,?,?,?)'
+  ).run(uid, -amount, 'expense', description, photo);
+  res.json({ id: r.lastInsertRowid, photo });
+});
+
 // Receipt OCR
 router.post('/:id/receipt', parentOnly, require('../middleware/upload').single('receipt'), async (req, res) => {
   const uid = Number(req.params.id);

@@ -196,6 +196,36 @@ export default function ChildDashboard() {
         </div>
       )}
 
+      {/* Transaction history */}
+      {data.recentTx?.length > 0 && (
+        <div className="card mb-4">
+          <h2 className="font-bold mb-3">📋 Einnahmen &amp; Ausgaben</h2>
+          <div className="flex flex-col gap-3">
+            {data.recentTx.map(tx => (
+              <div key={tx.id} style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 10 }}>
+                <div className="flex justify-between items-start gap-2">
+                  <div style={{ flex: 1 }}>
+                    <div className="font-semibold text-sm">{tx.description}</div>
+                    <div className="text-muted" style={{ fontSize: '0.72rem' }}>
+                      {new Date(tx.created_at).toLocaleDateString('de-CH')}
+                    </div>
+                  </div>
+                  <span className="font-bold" style={{ color: tx.amount >= 0 ? 'var(--success)' : 'var(--danger)', whiteSpace: 'nowrap' }}>
+                    {tx.amount >= 0 ? '+' : ''}CHF {Math.abs(tx.amount).toFixed(2)}
+                  </span>
+                </div>
+                {tx.receipt_photo && (
+                  <a href={tx.receipt_photo} target="_blank" rel="noopener noreferrer">
+                    <img src={tx.receipt_photo} alt="Beleg"
+                      style={{ marginTop: 8, maxHeight: 100, borderRadius: 8, objectFit: 'cover', cursor: 'pointer' }} />
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Claim modal */}
       {claimModal && (
         <Modal open title="Belohnung einlösen?" onClose={() => setClaimModal(null)}>

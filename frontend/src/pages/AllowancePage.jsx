@@ -1,21 +1,51 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '../api/client';
 import { useToast } from '../context/ToastContext';
 import Avatar from '../components/Avatar';
 import Modal from '../components/Modal';
 import ProgressBar from '../components/ProgressBar';
 
+async function resizeImage(file, maxPx = 500) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(resolve, 'image/jpeg', 0.85);
+    };
+    img.src = url;
+  });
+}
+
+const TX_LABELS = {
+  allowance: 'Taschengeld',
+  manual: 'Manuell',
+  expense: 'Ausgabe',
+  savings_deposit: 'Sparbüchse',
+  point_exchange: 'Punkte-Umtausch',
+  interest: 'Zinsen',
+};
+
 export default function AllowancePage() {
   const toast = useToast();
+  const photoRef = useRef();
   const [children, setChildren] = useState([]);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
   const [payModal, setPayModal] = useState(false);
   const [configModal, setConfigModal] = useState(false);
   const [goalModal, setGoalModal] = useState(false);
+  const [expenseModal, setExpenseModal] = useState(false);
   const [pay, setPay] = useState({ amount: '', description: '' });
   const [config, setConfig] = useState({ amount: '', interval: 'monthly', interest_rate: '', next_payout_at: '' });
   const [newGoal, setNewGoal] = useState({ name: '', target_amount: '' });
+  const [expense, setExpense] = useState({ amount: '', description: '' });
+  const [photoPreview, setPhotoPreview] = useState(null);
 
   useEffect(() => { load(); }, []);
   async function load() {
@@ -57,6 +87,31 @@ export default function AllowancePage() {
   async function deleteGoal(gid) {
     await api.delete(`/allowance/${selected.id}/goals/${gid}`);
     loadDetail(selected);
+  }
+
+  async function doExpense() {
+    if (!expense.amount || !expense.description) return toast('Betrag und Beschreibung angeben', 'error');
+    const fd = new FormData();
+    fd.append('amount', expense.amount);
+    fd.append('description', expense.description);
+    if (photoRef.current?.files[0]) {
+      const resized = await resizeImage(photoRef.current.files[0]);
+      fd.append('photo', resized, 'receipt.jpg');
+    }
+    await api.post(`/allowance/${selected.id}/expense`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+    toast(`CHF ${expense.amount} Ausgabe gespeichert 🧾`, 'success');
+    setExpense({ amount: '', description: '' });
+    setPhotoPreview(null);
+    if (photoRef.current) photoRef.current.value = '';
+    setExpenseModal(false);
+    loadDetail(selected);
+    load();
+  }
+
+  function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (file) setPhotoPreview(URL.createObjectURL(file));
+    else setPhotoPreview(null);
   }
 
   return (
@@ -109,9 +164,11 @@ export default function AllowancePage() {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 mb-4">
-            <button className="btn-primary w-full" onClick={() => setPayModal(true)}>💰 Auszahlen</button>
-            <button className="btn-ghost w-full" onClick={() => setConfigModal(true)}>⚙️ Konfig</button>
+          <div className="flex gap-2 mb-4 flex-wrap">
+            <button className="btn-primary" style={{ flex: 1 }} onClick={() => setPayModal(true)}>💰 Auszahlen</button>
+            <button className="w-full" style={{ flex: 1, background: '#fff1f2', color: '#be123c', border: '1.5px solid #fecdd3', borderRadius: 12, padding: '10px', fontWeight: 600 }}
+              onClick={() => setExpenseModal(true)}>🧾 Ausgabe</button>
+            <button className="btn-ghost" style={{ flex: 1 }} onClick={() => setConfigModal(true)}>⚙️ Konfig</button>
           </div>
 
           {/* Config info */}
@@ -151,19 +208,30 @@ export default function AllowancePage() {
 
           {/* Transaction history */}
           <div className="card">
-            <h2 className="font-bold mb-3">Transaktionen</h2>
-            <div className="flex flex-col gap-2">
+            <h2 className="font-bold mb-3">Einnahmen &amp; Ausgaben</h2>
+            <div className="flex flex-col gap-3">
               {(detail?.transactions || []).map(tx => (
-                <div key={tx.id} className="flex justify-between items-center" style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
-                  <div>
-                    <div className="font-semibold text-sm">{tx.description}</div>
-                    <div className="text-muted text-sm">{new Date(tx.created_at).toLocaleDateString('de-CH')}</div>
+                <div key={tx.id} style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 10 }}>
+                  <div className="flex justify-between items-start gap-2">
+                    <div style={{ flex: 1 }}>
+                      <div className="font-semibold text-sm">{tx.description}</div>
+                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>
+                        {TX_LABELS[tx.type] || tx.type} · {new Date(tx.created_at).toLocaleDateString('de-CH')}
+                      </div>
+                    </div>
+                    <span className="font-bold" style={{ color: tx.amount >= 0 ? 'var(--success)' : 'var(--danger)', whiteSpace: 'nowrap' }}>
+                      {tx.amount >= 0 ? '+' : ''}CHF {Math.abs(tx.amount).toFixed(2)}
+                    </span>
                   </div>
-                  <span className="font-bold" style={{ color: tx.amount >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                    {tx.amount >= 0 ? '+' : ''}CHF {tx.amount.toFixed(2)}
-                  </span>
+                  {tx.receipt_photo && (
+                    <a href={tx.receipt_photo} target="_blank" rel="noopener noreferrer">
+                      <img src={tx.receipt_photo} alt="Beleg"
+                        style={{ marginTop: 8, maxHeight: 120, borderRadius: 8, objectFit: 'cover', cursor: 'pointer' }} />
+                    </a>
+                  )}
                 </div>
               ))}
+              {(detail?.transactions || []).length === 0 && <p className="text-muted text-sm">Noch keine Transaktionen</p>}
             </div>
           </div>
         </>
@@ -191,6 +259,28 @@ export default function AllowancePage() {
             <input type="date" value={config.next_payout_at} onChange={e => setConfig(c => ({ ...c, next_payout_at: e.target.value }))} />
           </div>
           <button className="btn-primary w-full" onClick={doConfig}>Speichern</button>
+        </div>
+      </Modal>
+
+      <Modal open={expenseModal} title="🧾 Ausgabe erfassen" onClose={() => { setExpenseModal(false); setPhotoPreview(null); }}>
+        <div className="flex flex-col gap-3">
+          <input type="number" placeholder="Betrag (CHF)" value={expense.amount}
+            onChange={e => setExpense(x => ({ ...x, amount: e.target.value }))} />
+          <input placeholder="Beschreibung (z.B. Spielzeug Globus)" value={expense.description}
+            onChange={e => setExpense(x => ({ ...x, description: e.target.value }))} />
+          <div>
+            <label className="text-sm text-muted mb-1" style={{ display: 'block' }}>Foto (optional, wird auf 500px verkleinert)</label>
+            <input type="file" accept="image/*" ref={photoRef} onChange={handlePhotoChange}
+              style={{ padding: '6px 0' }} />
+            {photoPreview && (
+              <img src={photoPreview} alt="Vorschau"
+                style={{ marginTop: 8, maxHeight: 160, borderRadius: 10, objectFit: 'cover', width: '100%' }} />
+            )}
+          </div>
+          <button style={{ background: '#be123c', color: '#fff', borderRadius: 12, padding: '12px', fontWeight: 700 }}
+            onClick={doExpense}>
+            Ausgabe buchen 🧾
+          </button>
         </div>
       </Modal>
 
