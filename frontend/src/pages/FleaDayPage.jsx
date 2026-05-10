@@ -24,6 +24,7 @@ export default function FleaDayPage() {
   const [summary, setSummary] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', barcode: '', category: 'Spielzeug', condition: 'gut', suggested_price: '', owners: [] });
   const [soldPrice, setSoldPrice] = useState('');
+  const [soldType, setSoldType] = useState('cash');
   const photoRef = useRef();
   const editPhotoRef = useRef();
 
@@ -101,10 +102,22 @@ export default function FleaDayPage() {
   }
 
   async function sellItem() {
-    await api.post(`/flea/items/${sellModal.id}/sell`, { sold_price: Number(soldPrice) });
-    toast(`Verkauft für CHF ${soldPrice}! 💰`, 'success');
+    if (soldType === 'cash') {
+      await api.post(`/flea/items/${sellModal.id}/sell`, { sold_price: Number(soldPrice), sold_type: 'cash' });
+      toast(`Verkauft für CHF ${soldPrice}! 💰`, 'success');
+    } else {
+      await api.post(`/flea/items/${sellModal.id}/sell`, { sold_price: 0, sold_type: 'tausch' });
+      toast(`Als Tausch markiert! 🔄`, 'success');
+    }
     setSellModal(null);
     setSoldPrice('');
+    setSoldType('cash');
+    load();
+  }
+
+  async function undoSell(item) {
+    await api.post(`/flea/items/${item.id}/undo-sell`);
+    toast('Verkauf rückgängig gemacht ↩️', 'success');
     load();
   }
 
@@ -207,11 +220,14 @@ export default function FleaDayPage() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1 items-end">
-                    <span className={`tag ${item.status === 'sold' ? 'tag-green' : item.status === 'unsold' ? 'tag-red' : 'tag-blue'}`}>
-                      {item.status === 'sold' ? '✓ Verkauft' : item.status === 'unsold' ? '✗ Nicht verk.' : 'Verfügbar'}
+                    <span className={`tag ${item.status === 'sold' ? (item.sold_type === 'tausch' ? 'tag-green' : 'tag-green') : item.status === 'unsold' ? 'tag-red' : 'tag-blue'}`}>
+                      {item.status === 'sold' ? (item.sold_type === 'tausch' ? '🔄 Tausch' : '✓ Verkauft') : item.status === 'unsold' ? '✗ Nicht verk.' : 'Verfügbar'}
                     </span>
                     <div className="flex gap-1">
                       <button style={{ background: '#e0e7ef', color: '#374151', padding: '4px 8px', borderRadius: 8, fontSize: '0.75rem' }} onClick={() => openEdit(item)}>✏️</button>
+                      {item.status === 'sold' && (
+                        <button style={{ background: '#fef3c7', color: '#92400e', padding: '4px 8px', borderRadius: 8, fontSize: '0.75rem' }} onClick={() => undoSell(item)}>↩️</button>
+                      )}
                       {item.status === 'available' && (
                         <button style={{ background: '#fee2e2', color: '#991b1b', padding: '4px 8px', borderRadius: 8, fontSize: '0.75rem' }} onClick={() => deleteItem(item)}>🗑️</button>
                       )}
@@ -249,7 +265,7 @@ export default function FleaDayPage() {
                   <div className="font-semibold" style={{ color: 'var(--primary)' }}>CHF {item.suggested_price}</div>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <button className="btn-primary" style={{ padding: '8px 16px' }} onClick={() => { setSellModal(item); setSoldPrice(String(item.suggested_price)); }}>
+                  <button className="btn-primary" style={{ padding: '8px 16px' }} onClick={() => { setSellModal(item); setSoldPrice(String(item.suggested_price)); setSoldType('cash'); }}>
                     💰 Verkaufen
                   </button>
                   <button style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 12px', borderRadius: 8, fontSize: '0.85rem' }} onClick={() => markUnsold(item)}>
@@ -260,6 +276,27 @@ export default function FleaDayPage() {
             ))}
             {available.length === 0 && <div className="card text-center text-muted">Alle Artikel abgerechnet!</div>}
           </div>
+          {sold.length > 0 && (
+            <div className="mt-4">
+              <h2 className="font-bold mb-3">✓ Bereits verkauft</h2>
+              <div className="flex flex-col gap-2">
+                {sold.map(item => (
+                  <div key={item.id} className="card flex justify-between items-center gap-3" style={{ opacity: 0.8 }}>
+                    <div>
+                      <div className="font-bold">{item.name}</div>
+                      <div className="text-sm text-muted">{item.owner_names}</div>
+                      <div className="font-semibold" style={{ color: 'var(--success)' }}>
+                        {item.sold_type === 'tausch' ? '🔄 Tausch' : `CHF ${item.sold_price}`}
+                      </div>
+                    </div>
+                    <button style={{ background: '#fef3c7', color: '#92400e', padding: '8px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600 }} onClick={() => undoSell(item)}>
+                      ↩️ Rückgängig
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -290,7 +327,10 @@ export default function FleaDayPage() {
                 {child.items.filter(i => i.status === 'sold').map(item => (
                   <div key={item.id} className="flex justify-between text-sm" style={{ borderTop: '1px solid #f0f0f0', paddingTop: 4 }}>
                     <span>{item.name} <span className="text-muted">({item.category})</span></span>
-                    <span style={{ color: 'var(--success)', fontWeight: 600 }}>CHF {Number(item.sold_price).toFixed(2)}</span>
+                    {item.sold_type === 'tausch'
+                      ? <span style={{ color: '#7c3aed', fontWeight: 600 }}>🔄 Tausch</span>
+                      : <span style={{ color: 'var(--success)', fontWeight: 600 }}>CHF {Number(item.sold_price).toFixed(2)}</span>
+                    }
                   </div>
                 ))}
                 {child.items.filter(i => i.status === 'unsold').map(item => (
@@ -377,12 +417,37 @@ export default function FleaDayPage() {
 
       {/* Sell modal */}
       {sellModal && (
-        <Modal open title={`Verkaufen: ${sellModal.name}`} onClose={() => setSellModal(null)}>
-          <div className="mb-3">
-            <div className="text-muted text-sm">Richtpreis: CHF {sellModal.suggested_price}</div>
+        <Modal open title={`Verkaufen: ${sellModal.name}`} onClose={() => { setSellModal(null); setSoldType('cash'); setSoldPrice(''); }}>
+          <div className="flex gap-2 mb-4">
+            {[['cash', '💰 Preis'], ['tausch', '🔄 Tausch']].map(([val, label]) => (
+              <button key={val} onClick={() => setSoldType(val)}
+                style={{ flex: 1, padding: '10px', borderRadius: 12, fontWeight: 700,
+                  background: soldType === val ? (val === 'tausch' ? '#ede9fe' : 'var(--primary)') : '#e0e7ef',
+                  color: soldType === val ? (val === 'tausch' ? '#6d28d9' : '#fff') : 'var(--text)',
+                  border: soldType === val && val === 'tausch' ? '2px solid #7c3aed' : '2px solid transparent' }}>
+                {label}
+              </button>
+            ))}
           </div>
-          <input type="number" placeholder="Tatsächlicher Verkaufspreis" value={soldPrice} onChange={e => setSoldPrice(e.target.value)} autoFocus />
-          <button className="btn-primary w-full mt-3" onClick={sellItem}>💰 Verkauf bestätigen</button>
+          {soldType === 'cash' ? (
+            <>
+              <div className="text-muted text-sm mb-2">Richtpreis: CHF {sellModal.suggested_price}</div>
+              <input type="number" placeholder="Tatsächlicher Verkaufspreis" value={soldPrice}
+                onChange={e => setSoldPrice(e.target.value)} autoFocus />
+              <button className="btn-primary w-full mt-3" onClick={sellItem} disabled={!soldPrice}>
+                💰 Verkauf bestätigen
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ background: '#ede9fe', borderRadius: 10, padding: '12px 14px', color: '#6d28d9', fontSize: '0.9rem' }}>
+                Der Artikel wird als Tausch markiert. Es wird kein Geld gutgeschrieben.
+              </div>
+              <button style={{ background: '#7c3aed', color: '#fff', borderRadius: 12, padding: '12px', fontWeight: 700, width: '100%', marginTop: 12 }} onClick={sellItem}>
+                🔄 Als Tausch bestätigen
+              </button>
+            </>
+          )}
         </Modal>
       )}
     </div>

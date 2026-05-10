@@ -197,6 +197,7 @@ function migrate() {
   try { db.exec('ALTER TABLE mini_jobs ADD COLUMN job_type TEXT DEFAULT "extra"'); } catch {}
   try { db.exec('ALTER TABLE users ADD COLUMN age_group TEXT DEFAULT "school"'); } catch {}
   try { db.exec('ALTER TABLE mini_jobs ADD COLUMN image TEXT'); } catch {}
+  try { db.exec("ALTER TABLE flea_items ADD COLUMN sold_type TEXT DEFAULT 'cash'"); } catch {}
 
   seedBadges();
   seedDefaultAdmin();
