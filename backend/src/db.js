@@ -162,6 +162,15 @@ function migrate() {
       size_bytes INTEGER,
       created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS api_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      last_used_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   seedBadges();

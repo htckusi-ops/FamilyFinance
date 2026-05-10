@@ -13,18 +13,70 @@ export default function SettingsPage() {
   const [addModal, setAddModal] = useState(false);
   const [notifyConfig, setNotifyConfig] = useState({ telegram_chat_id: '', events: [] });
   const [form, setForm] = useState({ name: '', role: 'child', color: '#FF9800', pin_required: false, pin: '', password: '' });
+  const [tokens, setTokens] = useState([]);
+  const [newTokenName, setNewTokenName] = useState('');
+  const [generatedToken, setGeneratedToken] = useState(null);
+  const [haChildren, setHaChildren] = useState([]);
   const photoRef = useRef();
+
+  const haBaseUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
 
   useEffect(() => { load(); }, []);
   async function load() {
-    const [usersRes, backupsRes, notifyRes] = await Promise.all([
+    const [usersRes, backupsRes, notifyRes, tokensRes] = await Promise.all([
       api.get('/users'),
       api.get('/backup'),
       api.get('/notify').catch(() => ({ data: {} })),
+      api.get('/tokens').catch(() => ({ data: [] })),
     ]);
     setUsers(usersRes.data);
     setBackups(backupsRes.data);
     setNotifyConfig(prev => ({ ...prev, ...(notifyRes.data || {}) }));
+    setTokens(tokensRes.data);
+    setHaChildren(usersRes.data.filter(u => u.role === 'child'));
+  }
+
+  async function generateToken() {
+    if (!newTokenName.trim()) return toast('Bitte einen Namen eingeben', 'error');
+    const r = await api.post('/tokens', { name: newTokenName.trim() });
+    setGeneratedToken(r.data.token);
+    setNewTokenName('');
+    toast('Token erstellt — einmalig sichtbar!', 'success');
+    load();
+  }
+
+  async function revokeToken(id) {
+    await api.delete(`/tokens/${id}`);
+    toast('Token widerrufen', 'success');
+    load();
+  }
+
+  function haYaml(token) {
+    const lines = [`# FamilyFinance – Home Assistant Integration`, `# configuration.yaml`, ``];
+    lines.push(`rest:`);
+    lines.push(`  - resource: "${haBaseUrl}/api/ha/summary"`);
+    lines.push(`    headers:`);
+    lines.push(`      Authorization: "Bearer ${token}"`);
+    lines.push(`    scan_interval: 300`);
+    lines.push(`    sensor:`);
+    haChildren.forEach(child => {
+      lines.push(`      - name: "${child.name} Guthaben"`);
+      lines.push(`        value_template: "{{ value_json.children | selectattr('id','eq',${child.id}) | map(attribute='balance') | first | round(2) }}"`);
+      lines.push(`        unit_of_measurement: "CHF"`);
+      lines.push(`      - name: "${child.name} Punkte"`);
+      lines.push(`        value_template: "{{ value_json.children | selectattr('id','eq',${child.id}) | map(attribute='points') | first }}"`);
+      lines.push(`        unit_of_measurement: "Pkt"`);
+      lines.push(`      - name: "${child.name} Streak"`);
+      lines.push(`        value_template: "{{ value_json.children | selectattr('id','eq',${child.id}) | map(attribute='streak_weeks') | first }}"`);
+      lines.push(`        unit_of_measurement: "Wochen"`);
+    });
+    lines.push(``);
+    lines.push(`panel_iframe:`);
+    lines.push(`  familyfinance:`);
+    lines.push(`    title: FamilyFinance`);
+    lines.push(`    icon: mdi:piggy-bank`);
+    lines.push(`    url: "${window.location.protocol}//${window.location.hostname}:3000"`);
+    return lines.join('\n');
   }
 
   async function addUser() {
@@ -116,6 +168,90 @@ export default function SettingsPage() {
           ))}
           {backups.length === 0 && <p className="text-muted text-sm">Noch kein Backup vorhanden</p>}
         </div>
+      </div>
+
+      {/* Home Assistant Integration */}
+      <div className="card mb-4">
+        <h2 className="font-bold mb-3">🏠 Home Assistant Integration</h2>
+
+        {/* Token generator */}
+        <div className="mb-4">
+          <p className="text-sm text-muted mb-2">Langlebige API-Tokens für Home Assistant (läuft nie ab).</p>
+          <div className="flex gap-2 mb-3">
+            <input placeholder="Token-Name (z.B. Home Assistant)" value={newTokenName}
+              onChange={e => setNewTokenName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && generateToken()} />
+            <button className="btn-primary" style={{ padding: '10px 16px', whiteSpace: 'nowrap' }} onClick={generateToken}>
+              Erstellen
+            </button>
+          </div>
+
+          {/* Show generated token once */}
+          {generatedToken && (
+            <div style={{ background: '#f0fff4', border: '2px solid var(--success)', borderRadius: 12, padding: 14, marginBottom: 12 }}>
+              <div className="font-semibold text-sm mb-1" style={{ color: 'var(--success)' }}>
+                ✅ Token erstellt — nur einmal sichtbar!
+              </div>
+              <code style={{ fontSize: '0.75rem', wordBreak: 'break-all', display: 'block', background: '#fff', padding: 8, borderRadius: 8 }}>
+                {generatedToken}
+              </code>
+              <button className="btn-ghost w-full mt-2" style={{ fontSize: '0.85rem', padding: '8px' }}
+                onClick={() => { navigator.clipboard?.writeText(generatedToken); toast('Kopiert!', 'success'); }}>
+                📋 Kopieren
+              </button>
+              <div className="mt-3">
+                <div className="font-semibold text-sm mb-1">configuration.yaml für Home Assistant:</div>
+                <pre style={{ fontSize: '0.65rem', background: '#1a1a2e', color: '#a8d8a8', padding: 12, borderRadius: 8, overflow: 'auto', whiteSpace: 'pre-wrap', maxHeight: 300 }}>
+                  {haYaml(generatedToken)}
+                </pre>
+                <button className="btn-ghost w-full mt-2" style={{ fontSize: '0.85rem', padding: '8px' }}
+                  onClick={() => { navigator.clipboard?.writeText(haYaml(generatedToken)); toast('YAML kopiert!', 'success'); }}>
+                  📋 YAML kopieren
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Existing tokens */}
+          {tokens.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <div className="text-sm font-semibold text-muted">Aktive Tokens:</div>
+              {tokens.map(t => (
+                <div key={t.id} className="flex justify-between items-center" style={{ background: '#f8faff', padding: '8px 12px', borderRadius: 10 }}>
+                  <div>
+                    <div className="font-semibold text-sm">{t.name}</div>
+                    <div className="text-muted" style={{ fontSize: '0.7rem' }}>
+                      Erstellt: {new Date(t.created_at).toLocaleDateString('de-CH')}
+                      {t.last_used_at && ` · Zuletzt: ${new Date(t.last_used_at).toLocaleDateString('de-CH')}`}
+                    </div>
+                  </div>
+                  <button style={{ background: '#fee2e2', color: '#991b1b', padding: '4px 10px', borderRadius: 8, fontSize: '0.8rem' }}
+                    onClick={() => revokeToken(t.id)}>Widerrufen</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* HA API Endpoints Info */}
+        <details>
+          <summary className="font-semibold text-sm" style={{ cursor: 'pointer', color: 'var(--primary)' }}>
+            📡 Verfügbare API-Endpunkte
+          </summary>
+          <div className="mt-2 flex flex-col gap-1" style={{ fontSize: '0.75rem' }}>
+            {[
+              ['GET', '/api/ha/summary', 'Alle Kinder (Guthaben, Punkte, Streak, Sparziele)'],
+              ['GET', `/api/ha/child/:id`, 'Einzelnes Kind'],
+              ['GET', '/api/ha/pending-claims', 'Offene Belohnungsanfragen'],
+            ].map(([method, path, desc]) => (
+              <div key={path} style={{ background: '#f0f4ff', borderRadius: 8, padding: '6px 10px' }}>
+                <span style={{ background: 'var(--primary)', color: '#fff', borderRadius: 4, padding: '1px 6px', fontSize: '0.65rem', marginRight: 6 }}>{method}</span>
+                <code style={{ fontSize: '0.7rem' }}>{path}</code>
+                <div className="text-muted" style={{ fontSize: '0.7rem', marginTop: 2 }}>{desc}</div>
+              </div>
+            ))}
+          </div>
+        </details>
       </div>
 
       {/* Logout */}
