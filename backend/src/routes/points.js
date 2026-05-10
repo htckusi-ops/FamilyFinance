@@ -6,24 +6,31 @@ const { sendNotification } = require('../services/notify');
 
 router.use(auth);
 
-// Mini-job list
+// Mini-job list (both duties and extras)
 router.get('/jobs', (_req, res) => {
-  res.json(db.prepare('SELECT * FROM mini_jobs WHERE active=1 ORDER BY name').all());
+  res.json(db.prepare(
+    'SELECT * FROM mini_jobs WHERE active=1 ORDER BY job_type DESC, name'
+  ).all());
 });
 
 router.post('/jobs', parentOnly, (req, res) => {
-  const { name, points, recurrence } = req.body;
-  const r = db.prepare('INSERT INTO mini_jobs (name,points,recurrence) VALUES (?,?,?)').run(name, points, recurrence || 'manual');
+  const { name, points, recurrence, job_type } = req.body;
+  const type = job_type || 'extra';
+  const pts = type === 'duty' ? 0 : (points || 0);
+  const r = db.prepare(
+    'INSERT INTO mini_jobs (name,points,recurrence,job_type) VALUES (?,?,?,?)'
+  ).run(name, pts, recurrence || 'manual', type);
   res.json({ id: r.lastInsertRowid });
 });
 
 router.patch('/jobs/:id', parentOnly, (req, res) => {
-  const { name, points, recurrence, active } = req.body;
+  const { name, points, recurrence, active, job_type } = req.body;
   const fields = {};
   if (name !== undefined) fields.name = name;
   if (points !== undefined) fields.points = points;
   if (recurrence !== undefined) fields.recurrence = recurrence;
   if (active !== undefined) fields.active = active ? 1 : 0;
+  if (job_type !== undefined) fields.job_type = job_type;
   const sets = Object.keys(fields).map(k => `${k}=?`).join(',');
   if (sets) db.prepare(`UPDATE mini_jobs SET ${sets} WHERE id=?`).run(...Object.values(fields), Number(req.params.id));
   res.json({ ok: true });

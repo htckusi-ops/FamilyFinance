@@ -7,7 +7,7 @@ const upload = require('../middleware/upload');
 router.use(auth);
 
 router.get('/', (req, res) => {
-  const users = db.prepare('SELECT id,name,role,photo,color,pin_required FROM users').all();
+  const users = db.prepare('SELECT id,name,role,photo,color,pin_required,age_group FROM users').all();
   res.json(users);
 });
 
@@ -68,17 +68,18 @@ router.post('/', parentOnly, (req, res) => {
 });
 
 router.patch('/:id', parentOnly, (req, res) => {
-  const { name, color, pin_required, pin, password } = req.body;
   const uid = Number(req.params.id);
   const user = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
   if (!user) return res.status(404).json({ error: 'Not found' });
 
+  const { name, color, pin_required, pin, password, age_group } = req.body;
   const updates = {};
   if (name) updates.name = name;
   if (color) updates.color = color;
   if (pin_required !== undefined) updates.pin_required = pin_required ? 1 : 0;
   if (pin) updates.pin_hash = bcrypt.hashSync(String(pin), 10);
   if (password) updates.password_hash = bcrypt.hashSync(password, 10);
+  if (age_group) updates.age_group = age_group;
 
   const sets = Object.keys(updates).map(k => `${k}=?`).join(',');
   if (sets) {

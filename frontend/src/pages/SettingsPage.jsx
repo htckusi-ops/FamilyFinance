@@ -17,23 +17,37 @@ export default function SettingsPage() {
   const [newTokenName, setNewTokenName] = useState('');
   const [generatedToken, setGeneratedToken] = useState(null);
   const [haChildren, setHaChildren] = useState([]);
+  const [famSettings, setFamSettings] = useState({});
   const photoRef = useRef();
 
   const haBaseUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
 
   useEffect(() => { load(); }, []);
   async function load() {
-    const [usersRes, backupsRes, notifyRes, tokensRes] = await Promise.all([
+    const [usersRes, backupsRes, notifyRes, tokensRes, settingsRes] = await Promise.all([
       api.get('/users'),
       api.get('/backup'),
       api.get('/notify').catch(() => ({ data: {} })),
       api.get('/tokens').catch(() => ({ data: [] })),
+      api.get('/settings').catch(() => ({ data: {} })),
     ]);
     setUsers(usersRes.data);
     setBackups(backupsRes.data);
     setNotifyConfig(prev => ({ ...prev, ...(notifyRes.data || {}) }));
     setTokens(tokensRes.data);
     setHaChildren(usersRes.data.filter(u => u.role === 'child'));
+    setFamSettings(settingsRes.data);
+  }
+
+  async function saveFamSetting(key, value) {
+    await api.patch('/settings', { [key]: value });
+    setFamSettings(s => ({ ...s, [key]: value }));
+    toast('Einstellung gespeichert', 'success');
+  }
+
+  async function setAgeGroup(uid, group) {
+    await api.patch(`/users/${uid}`, { age_group: group });
+    load();
   }
 
   async function generateToken() {
@@ -168,6 +182,51 @@ export default function SettingsPage() {
           ))}
           {backups.length === 0 && <p className="text-muted text-sm">Noch kein Backup vorhanden</p>}
         </div>
+      </div>
+
+      {/* Pedagogical settings */}
+      <div className="card mb-4">
+        <h2 className="font-bold mb-3">🎓 Pädagogische Einstellungen</h2>
+        <div className="flex flex-col gap-3">
+          <label className="flex items-center justify-between gap-2">
+            <div>
+              <div className="font-semibold text-sm">🔥 Streak anzeigen</div>
+              <div className="text-muted" style={{ fontSize: '0.78rem' }}>Wochen-Streak für Kinder sichtbar machen</div>
+            </div>
+            <input type="checkbox"
+              checked={famSettings.show_streak !== 'false'}
+              onChange={e => saveFamSetting('show_streak', e.target.checked ? 'true' : 'false')} />
+          </label>
+          <label className="flex items-center justify-between gap-2">
+            <div>
+              <div className="font-semibold text-sm">🏆 Badges anzeigen</div>
+              <div className="text-muted" style={{ fontSize: '0.78rem' }}>Abzeichen im Kinder-Dashboard anzeigen</div>
+            </div>
+            <input type="checkbox"
+              checked={famSettings.show_badges !== 'false'}
+              onChange={e => saveFamSetting('show_badges', e.target.checked ? 'true' : 'false')} />
+          </label>
+        </div>
+
+        {/* Age group per child */}
+        {users.filter(u => u.role === 'child').length > 0 && (
+          <div className="mt-4">
+            <div className="font-semibold text-sm mb-2">Altersgruppe pro Kind</div>
+            <div className="flex flex-col gap-2">
+              {users.filter(u => u.role === 'child').map(child => (
+                <div key={child.id} className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-sm">{child.name}</span>
+                  <select value={child.age_group || 'school'} onChange={e => setAgeGroup(child.id, e.target.value)}
+                    style={{ fontSize: '0.85rem', padding: '6px 10px' }}>
+                    <option value="young">6–8 Jahre</option>
+                    <option value="school">9–12 Jahre</option>
+                    <option value="teen">13+ Jahre</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Home Assistant Integration */}

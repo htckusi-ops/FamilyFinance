@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import Avatar from '../components/Avatar';
 import Modal from '../components/Modal';
 
 export default function PointsPage({ childId }) {
@@ -13,29 +12,39 @@ export default function PointsPage({ childId }) {
   const [selectedChild, setSelectedChild] = useState(childId ? String(childId) : '');
   const [jobs, setJobs] = useState([]);
   const [history, setHistory] = useState(null);
+  const [settings, setSettings] = useState({});
   const [jobModal, setJobModal] = useState(false);
   const [awardModal, setAwardModal] = useState(false);
-  const [newJob, setNewJob] = useState({ name: '', points: '', recurrence: 'manual' });
+  const [newJob, setNewJob] = useState({ name: '', points: '', recurrence: 'manual', job_type: 'extra' });
   const [freeAward, setFreeAward] = useState({ delta: '', description: '' });
 
   useEffect(() => {
     api.get('/points/jobs').then(r => setJobs(r.data));
+    api.get('/settings').then(r => setSettings(r.data)).catch(() => {});
     if (isParent) api.get('/users').then(r => setChildren(r.data.filter(u => u.role === 'child')));
   }, []);
 
   useEffect(() => {
-    if (selectedChild || childId) {
-      const uid = selectedChild || childId;
-      api.get(`/points/${uid}`).then(r => setHistory(r.data)).catch(() => {});
-    }
+    const uid = selectedChild || childId;
+    if (uid) api.get(`/points/${uid}`).then(r => setHistory(r.data)).catch(() => {});
   }, [selectedChild, childId]);
+
+  const duties = jobs.filter(j => j.job_type === 'duty');
+  const extras = jobs.filter(j => j.job_type === 'extra');
+  const showStreak = settings.show_streak !== 'false';
 
   async function awardJob(job) {
     if (!selectedChild && !childId) return toast('Bitte Kind auswählen', 'error');
+    if (job.job_type === 'duty') return toast('Haushaltspflichten geben keine Punkte', 'error');
     const uid = selectedChild || childId;
     await api.post('/points/award', { user_id: uid, delta: job.points, description: job.name, mini_job_id: job.id });
     toast(`+${job.points} Punkte für ${job.name}! ⭐`, 'success');
     api.get(`/points/${uid}`).then(r => setHistory(r.data));
+  }
+
+  async function markDuty(job) {
+    // Duties are acknowledged but give no points
+    toast(`✅ ${job.name} erledigt – danke!`, 'success');
   }
 
   async function awardFree() {
@@ -49,9 +58,10 @@ export default function PointsPage({ childId }) {
   }
 
   async function addJob() {
-    await api.post('/points/jobs', newJob);
-    toast('Mini-Job gespeichert!', 'success');
-    setNewJob({ name: '', points: '', recurrence: 'manual' });
+    const pts = newJob.job_type === 'duty' ? 0 : Number(newJob.points);
+    await api.post('/points/jobs', { ...newJob, points: pts });
+    toast('Job gespeichert!', 'success');
+    setNewJob({ name: '', points: '', recurrence: 'manual', job_type: 'extra' });
     setJobModal(false);
     api.get('/points/jobs').then(r => setJobs(r.data));
   }
@@ -61,13 +71,49 @@ export default function PointsPage({ childId }) {
     api.get('/points/jobs').then(r => setJobs(r.data));
   }
 
+  function JobList({ items, isDuty }) {
+    if (items.length === 0) return <p className="text-muted text-sm">Noch keine {isDuty ? 'Pflichten' : 'Extra-Jobs'} definiert</p>;
+    return (
+      <div className="flex flex-col gap-2">
+        {items.map(job => (
+          <div key={job.id} className="flex justify-between items-center"
+            style={{ background: isDuty ? '#f0fff4' : '#f8faff', padding: '10px 14px', borderRadius: 12, borderLeft: `3px solid ${isDuty ? 'var(--success)' : 'var(--primary)'}` }}>
+            <div>
+              <span className="font-semibold">{job.name}</span>
+              <span className="text-muted text-sm ml-2">
+                ({job.recurrence === 'manual' ? 'manuell' : job.recurrence === 'daily' ? 'täglich' : 'wöchentlich'})
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {isDuty
+                ? <span className="tag tag-green">Pflicht</span>
+                : <span className="tag tag-blue">+{job.points} ⭐</span>
+              }
+              {isParent && (
+                <>
+                  <button
+                    className={isDuty ? 'btn-ghost' : 'btn-primary'}
+                    style={{ padding: '6px 12px', ...(isDuty ? { borderColor: 'var(--success)', color: 'var(--success)' } : {}) }}
+                    onClick={() => isDuty ? markDuty(job) : awardJob(job)}>
+                    ✓
+                  </button>
+                  <button style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 8 }} onClick={() => deleteJob(job.id)}>✕</button>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <h1 className="page-title">⭐ Punkte</h1>
 
       {isParent && (
         <div className="card mb-4">
-          <label className="font-semibold mb-2 flex" style={{ display: 'block' }}>Kind auswählen</label>
+          <label className="font-semibold mb-2" style={{ display: 'block' }}>Kind auswählen</label>
           <select value={selectedChild} onChange={e => setSelectedChild(e.target.value)}>
             <option value="">— bitte wählen —</option>
             {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -76,7 +122,7 @@ export default function PointsPage({ childId }) {
       )}
 
       {history && (
-        <div className="card mb-4" style={{ background: 'linear-gradient(135deg, #fef9c3, #fff7ed)' }}>
+        <div className="card mb-4" style={{ background: 'linear-gradient(135deg,#fef9c3,#fff7ed)' }}>
           <div className="flex justify-between items-center">
             <div>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--accent)' }}>
@@ -84,7 +130,7 @@ export default function PointsPage({ childId }) {
               </div>
               <div className="text-muted">Punkte Guthaben</div>
             </div>
-            {(history.summary?.streak_weeks || 0) > 0 && (
+            {showStreak && (history.summary?.streak_weeks || 0) > 0 && (
               <div className="text-center">
                 <div style={{ fontSize: '2rem' }}>🔥</div>
                 <div className="font-bold">{history.summary.streak_weeks}</div>
@@ -95,35 +141,31 @@ export default function PointsPage({ childId }) {
         </div>
       )}
 
-      {/* Mini-jobs */}
+      {/* Household duties */}
       <div className="card mb-4">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="font-bold">Mini-Jobs</h2>
-          {isParent && <button className="btn-primary" style={{ padding: '8px 14px' }} onClick={() => setJobModal(true)}>+ Job</button>}
+          <div>
+            <h2 className="font-bold">{settings.duty_jobs_label || 'Haushaltspflichten'}</h2>
+            <p className="text-sm text-muted">Gehören zur Familiengemeinschaft · keine Punkte</p>
+          </div>
+          {isParent && <button className="btn-primary" style={{ padding: '8px 14px' }} onClick={() => { setNewJob(j => ({ ...j, job_type: 'duty' })); setJobModal(true); }}>+</button>}
         </div>
-        <div className="flex flex-col gap-2">
-          {jobs.map(job => (
-            <div key={job.id} className="flex justify-between items-center" style={{ background: '#f8faff', padding: '10px 14px', borderRadius: 12 }}>
-              <div>
-                <span className="font-semibold">{job.name}</span>
-                <span className="text-muted text-sm ml-2">({job.recurrence === 'manual' ? 'manuell' : job.recurrence === 'daily' ? 'täglich' : 'wöchentlich'})</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="tag tag-blue">+{job.points} ⭐</span>
-                {isParent && (
-                  <>
-                    <button className="btn-primary" style={{ padding: '6px 12px' }} onClick={() => awardJob(job)}>✓</button>
-                    <button style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 8 }} onClick={() => deleteJob(job.id)}>✕</button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-          {jobs.length === 0 && <p className="text-muted text-sm">Noch keine Mini-Jobs definiert</p>}
+        <JobList items={duties} isDuty />
+      </div>
+
+      {/* Extra jobs */}
+      <div className="card mb-4">
+        <div className="flex justify-between items-center mb-3">
+          <div>
+            <h2 className="font-bold">{settings.extra_jobs_label || 'Extra-Jobs'}</h2>
+            <p className="text-sm text-muted">Freiwillig · werden mit Punkten belohnt</p>
+          </div>
+          {isParent && <button className="btn-primary" style={{ padding: '8px 14px' }} onClick={() => { setNewJob(j => ({ ...j, job_type: 'extra' })); setJobModal(true); }}>+</button>}
         </div>
+        <JobList items={extras} isDuty={false} />
         {isParent && (
           <button className="btn-ghost w-full mt-3" onClick={() => setAwardModal(true)}>
-            ✏️ Freie Punktvergabe
+            ✏️ Spontane Punkte vergeben
           </button>
         )}
       </div>
@@ -148,11 +190,27 @@ export default function PointsPage({ childId }) {
         </div>
       )}
 
-      {/* Job modal */}
-      <Modal open={jobModal} title="Neuer Mini-Job" onClose={() => setJobModal(false)}>
+      <Modal open={jobModal} title={`Neuer ${newJob.job_type === 'duty' ? 'Haushaltspflicht' : 'Extra-Job'}`} onClose={() => setJobModal(false)}>
         <div className="flex flex-col gap-3">
-          <input placeholder="Name (z.B. Zimmer aufräumen)" value={newJob.name} onChange={e => setNewJob(j => ({ ...j, name: e.target.value }))} />
-          <input type="number" placeholder="Punkte" value={newJob.points} onChange={e => setNewJob(j => ({ ...j, points: e.target.value }))} />
+          <div className="flex gap-2">
+            {['duty', 'extra'].map(t => (
+              <button key={t} onClick={() => setNewJob(j => ({ ...j, job_type: t }))}
+                style={{ flex: 1, padding: '10px', borderRadius: 12, background: newJob.job_type === t ? (t === 'duty' ? 'var(--success)' : 'var(--primary)') : '#e0e7ef', color: newJob.job_type === t ? '#fff' : 'var(--text)', fontWeight: 600 }}>
+                {t === 'duty' ? '🏠 Pflicht' : '⭐ Extra-Job'}
+              </button>
+            ))}
+          </div>
+          {newJob.job_type === 'duty' && (
+            <div style={{ background: '#f0fff4', borderRadius: 10, padding: '10px 12px', fontSize: '0.85rem', color: '#065f46' }}>
+              Haushaltspflichten geben keine Punkte — sie gehören zur Familiengemeinschaft.
+            </div>
+          )}
+          <input placeholder="Name (z.B. Zimmer aufräumen)" value={newJob.name}
+            onChange={e => setNewJob(j => ({ ...j, name: e.target.value }))} />
+          {newJob.job_type === 'extra' && (
+            <input type="number" placeholder="Punkte" value={newJob.points}
+              onChange={e => setNewJob(j => ({ ...j, points: e.target.value }))} />
+          )}
           <select value={newJob.recurrence} onChange={e => setNewJob(j => ({ ...j, recurrence: e.target.value }))}>
             <option value="manual">Manuell</option>
             <option value="daily">Täglich</option>
@@ -162,11 +220,15 @@ export default function PointsPage({ childId }) {
         </div>
       </Modal>
 
-      {/* Free award modal */}
-      <Modal open={awardModal} title="Freie Punktvergabe" onClose={() => setAwardModal(false)}>
+      <Modal open={awardModal} title="Spontane Punktvergabe" onClose={() => setAwardModal(false)}>
         <div className="flex flex-col gap-3">
           <input type="number" placeholder="Punkte (negativ für Abzug)" value={freeAward.delta}
             onChange={e => setFreeAward(a => ({ ...a, delta: e.target.value }))} />
+          {Number(freeAward.delta) < 0 && (
+            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, padding: '10px 12px', fontSize: '0.82rem', color: '#92400e' }}>
+              ⚠️ <strong>Punkteabzug:</strong> Negative Punkte als Strafe können das Vertrauen beeinträchtigen. Bitte nur mit Erklärung und im Gespräch einsetzen.
+            </div>
+          )}
           <input placeholder="Beschreibung" value={freeAward.description}
             onChange={e => setFreeAward(a => ({ ...a, description: e.target.value }))} />
           <button className="btn-accent w-full" onClick={awardFree}>Vergeben ⭐</button>

@@ -79,8 +79,9 @@ function migrate() {
     CREATE TABLE IF NOT EXISTS mini_jobs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      points INTEGER NOT NULL,
+      points INTEGER NOT NULL DEFAULT 0,
       recurrence TEXT DEFAULT 'manual' CHECK(recurrence IN ('manual','daily','weekly')),
+      job_type TEXT DEFAULT 'extra' CHECK(job_type IN ('duty','extra')),
       active INTEGER DEFAULT 1,
       created_at TEXT DEFAULT (datetime('now'))
     );
@@ -163,6 +164,11 @@ function migrate() {
       created_at TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS family_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS api_tokens (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -173,8 +179,26 @@ function migrate() {
     );
   `);
 
+  // Live migrations for existing databases
+  try { db.exec('ALTER TABLE mini_jobs ADD COLUMN job_type TEXT DEFAULT "extra"'); } catch {}
+  try { db.exec('ALTER TABLE users ADD COLUMN age_group TEXT DEFAULT "school"'); } catch {}
+
   seedBadges();
   seedDefaultAdmin();
+  seedDefaultSettings();
+}
+
+function seedDefaultSettings() {
+  const defaults = {
+    show_streak: 'true',
+    show_badges: 'true',
+    interest_visible_age: '10',
+    duty_jobs_label: 'Haushaltspflichten',
+    extra_jobs_label: 'Extra-Jobs',
+    currency: 'CHF',
+  };
+  const ins = db.prepare('INSERT OR IGNORE INTO family_settings (key, value) VALUES (?,?)');
+  for (const [k, v] of Object.entries(defaults)) ins.run(k, v);
 }
 
 function seedBadges() {

@@ -22,6 +22,7 @@ app.use('/api/backup',    require('./routes/backup'));
 app.use('/api/notify',    require('./routes/notify'));
 app.use('/api/tokens',    require('./routes/tokens'));
 app.use('/api/ha',        require('./routes/ha'));
+app.use('/api/settings',  require('./routes/settings'));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

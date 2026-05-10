@@ -21,17 +21,21 @@ export default function ChildDashboard() {
   const [claimModal, setClaimModal] = useState(null);
   const [newBadge, setNewBadge] = useState(null);
 
+  const [settings, setSettings] = useState({});
+
   useEffect(() => {
     load();
   }, []);
 
   async function load() {
-    const [dashRes, rewardsRes] = await Promise.all([
+    const [dashRes, rewardsRes, settingsRes] = await Promise.all([
       api.get(`/users/${user.id}/dashboard`),
       api.get('/rewards'),
+      api.get('/settings').catch(() => ({ data: {} })),
     ]);
     setData(dashRes.data);
     setRewards(rewardsRes.data);
+    setSettings(settingsRes.data);
   }
 
   async function claimReward(reward) {
@@ -51,6 +55,8 @@ export default function ChildDashboard() {
   const savings = data.account?.savings_balance || 0;
   const fleaTotal = data.fleaEarnings?.total || 0;
   const streak = data.points?.streak_weeks || 0;
+  const showStreak = settings.show_streak !== 'false';
+  const showBadges = settings.show_badges !== 'false';
 
   return (
     <div className="page">
@@ -59,7 +65,7 @@ export default function ChildDashboard() {
         <Avatar user={user} size={64} />
         <div>
           <h1 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{greeting()}, {user.name}! 👋</h1>
-          {streak > 0 && <p style={{ color: 'var(--accent)', fontWeight: 700 }}>🔥 {streak} Wochen Streak!</p>}
+          {showStreak && streak > 0 && <p style={{ color: 'var(--accent)', fontWeight: 700 }}>🔥 {streak} Wochen Streak!</p>}
         </div>
       </div>
 
@@ -166,7 +172,7 @@ export default function ChildDashboard() {
       </div>
 
       {/* Badges */}
-      {data.badges?.length > 0 && (
+      {showBadges && data.badges?.length > 0 && (
         <div className="card mb-4">
           <h2 className="font-bold mb-3">🏆 Meine Abzeichen</h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
