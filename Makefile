@@ -15,12 +15,13 @@ backup-db:
 	fi
 
 pull:
-	@echo "Synchronisiere mit Remote..."
+	@echo "Synchronisiere mit Remote (Branch: $(BRANCH))..."
 	@# Berechtigungen korrigieren damit git schreiben kann
 	chown -R $(shell id -un):$(shell id -gn) data/ backups/ uploads/ 2>/dev/null || true
 	git fetch origin $(BRANCH)
+	git checkout $(BRANCH) 2>/dev/null || true
 	git reset --hard origin/$(BRANCH)
-	@echo "Branch '$(BRANCH)' ist aktuell."
+	@echo "✓ Branch '$(BRANCH)' ist aktuell."
 
 up: init
 	docker compose up -d
