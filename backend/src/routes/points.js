@@ -16,10 +16,9 @@ router.get('/jobs', (_req, res) => {
 router.post('/jobs', parentOnly, (req, res) => {
   const { name, points, recurrence, job_type } = req.body;
   const type = job_type || 'extra';
-  const pts = type === 'duty' ? 0 : (points || 0);
   const r = db.prepare(
     'INSERT INTO mini_jobs (name,points,recurrence,job_type) VALUES (?,?,?,?)'
-  ).run(name, pts, recurrence || 'manual', type);
+  ).run(name, Number(points) || 0, recurrence || 'manual', type);
   res.json({ id: r.lastInsertRowid });
 });
 

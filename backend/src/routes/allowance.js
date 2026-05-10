@@ -28,7 +28,8 @@ router.get('/:id', (req, res) => {
   const transactions = db.prepare(
     'SELECT * FROM transactions WHERE user_id=? ORDER BY created_at DESC'
   ).all(uid);
-  res.json({ account, config, transactions });
+  const goals = db.prepare('SELECT * FROM savings_goals WHERE user_id=? ORDER BY created_at DESC').all(uid);
+  res.json({ account, config, transactions, goals });
 });
 
 router.post('/:id/pay', parentOnly, (req, res) => {

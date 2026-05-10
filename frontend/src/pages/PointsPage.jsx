@@ -35,16 +35,14 @@ export default function PointsPage({ childId }) {
 
   async function awardJob(job) {
     if (!selectedChild && !childId) return toast('Bitte Kind auswählen', 'error');
-    if (job.job_type === 'duty') return toast('Haushaltspflichten geben keine Punkte', 'error');
     const uid = selectedChild || childId;
-    await api.post('/points/award', { user_id: uid, delta: job.points, description: job.name, mini_job_id: job.id });
-    toast(`+${job.points} Punkte für ${job.name}! ⭐`, 'success');
-    api.get(`/points/${uid}`).then(r => setHistory(r.data));
-  }
-
-  async function markDuty(job) {
-    // Duties are acknowledged but give no points
-    toast(`✅ ${job.name} erledigt – danke!`, 'success');
+    if (job.points > 0) {
+      await api.post('/points/award', { user_id: uid, delta: job.points, description: job.name, mini_job_id: job.id });
+      toast(`+${job.points} Punkte für ${job.name}! ⭐`, 'success');
+      api.get(`/points/${uid}`).then(r => setHistory(r.data));
+    } else {
+      toast(`✅ ${job.name} erledigt – danke!`, 'success');
+    }
   }
 
   async function awardFree() {
@@ -85,16 +83,16 @@ export default function PointsPage({ childId }) {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              {isDuty
+              {isDuty && job.points === 0
                 ? <span className="tag tag-green">Pflicht</span>
                 : <span className="tag tag-blue">+{job.points} ⭐</span>
               }
               {isParent && (
                 <>
                   <button
-                    className={isDuty ? 'btn-ghost' : 'btn-primary'}
-                    style={{ padding: '6px 12px', ...(isDuty ? { borderColor: 'var(--success)', color: 'var(--success)' } : {}) }}
-                    onClick={() => isDuty ? markDuty(job) : awardJob(job)}>
+                    className={isDuty && job.points === 0 ? 'btn-ghost' : 'btn-primary'}
+                    style={{ padding: '6px 12px', ...(isDuty && job.points === 0 ? { borderColor: 'var(--success)', color: 'var(--success)' } : {}) }}
+                    onClick={() => awardJob(job)}>
                     ✓
                   </button>
                   <button style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 8 }} onClick={() => deleteJob(job.id)}>✕</button>
@@ -200,17 +198,10 @@ export default function PointsPage({ childId }) {
               </button>
             ))}
           </div>
-          {newJob.job_type === 'duty' && (
-            <div style={{ background: '#f0fff4', borderRadius: 10, padding: '10px 12px', fontSize: '0.85rem', color: '#065f46' }}>
-              Haushaltspflichten geben keine Punkte — sie gehören zur Familiengemeinschaft.
-            </div>
-          )}
           <input placeholder="Name (z.B. Zimmer aufräumen)" value={newJob.name}
             onChange={e => setNewJob(j => ({ ...j, name: e.target.value }))} />
-          {newJob.job_type === 'extra' && (
-            <input type="number" placeholder="Punkte" value={newJob.points}
-              onChange={e => setNewJob(j => ({ ...j, points: e.target.value }))} />
-          )}
+          <input type="number" placeholder={newJob.job_type === 'duty' ? 'Punkte (0 = nur bestätigen)' : 'Punkte'} value={newJob.points}
+            onChange={e => setNewJob(j => ({ ...j, points: e.target.value }))} />
           <select value={newJob.recurrence} onChange={e => setNewJob(j => ({ ...j, recurrence: e.target.value }))}>
             <option value="manual">Manuell</option>
             <option value="daily">Täglich</option>
