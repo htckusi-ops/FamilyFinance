@@ -134,10 +134,10 @@ export default function ChildDashboard() {
       )}
 
       {/* Points timeline */}
-      {rewards.length > 0 && (
+      {(rewards.length > 0 || data.user?.birthdate) && (
         <div className="card mb-4">
           <h2 className="font-bold mb-3">🗺️ Mein Weg zu den Wünschen</h2>
-          <PointsTimeline points={points} rewards={rewards} />
+          <PointsTimeline points={points} rewards={rewards} birthdate={data.user?.birthdate} />
         </div>
       )}
 

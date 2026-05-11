@@ -1,6 +1,20 @@
-export default function PointsTimeline({ points = 0, rewards = [] }) {
+function nextBirthday(birthdate) {
+  if (!birthdate) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [y, m, d] = birthdate.split('-').map(Number);
+  let next = new Date(today.getFullYear(), m - 1, d);
+  if (next <= today) next = new Date(today.getFullYear() + 1, m - 1, d);
+  const diffMs = next - today;
+  const days = Math.round(diffMs / 86400000);
+  const age = next.getFullYear() - y;
+  return { date: next, days, age };
+}
+
+export default function PointsTimeline({ points = 0, rewards = [], birthdate = null }) {
   const sorted = [...rewards].sort((a, b) => a.points_required - b.points_required);
-  if (sorted.length === 0) return null;
+  const bday = nextBirthday(birthdate);
+  if (sorted.length === 0 && !bday) return null;
 
   // Build ordered list: milestones interspersed with the current-position marker
   const achieved = sorted.filter(r => points >= r.points_required);
@@ -147,7 +161,7 @@ export default function PointsTimeline({ points = 0, rewards = [] }) {
       {upcoming.map((r, i) => (
         <div key={r.id}>
           <MilestoneRow r={r} state={i === 0 ? 'next' : 'future'} />
-          {i < upcoming.length - 1 && (
+          {(i < upcoming.length - 1 || bday) && (
             <div style={{ display: 'flex', gap: 12 }}>
               <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
                 <div style={{ width: 4, background: GREY, minHeight: 16, borderRadius: 4 }} />
@@ -157,6 +171,44 @@ export default function PointsTimeline({ points = 0, rewards = [] }) {
           )}
         </div>
       ))}
+
+      {/* Birthday milestone */}
+      {bday && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ width: 24, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{
+              width: 22, height: 22, borderRadius: '50%',
+              background: '#f472b6', border: '3px solid #fff',
+              boxShadow: '0 0 0 3px #f472b644, 0 1px 4px #0002',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.7rem', flexShrink: 0, zIndex: 2,
+            }}>🎂</div>
+          </div>
+          <div style={{
+            flex: 1, marginBottom: 4,
+            background: 'linear-gradient(135deg, #fff0f8, #fce7f3)',
+            border: '1.5px solid #f9a8d4',
+            borderRadius: 12,
+            padding: '10px 14px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                🎂 {bday.age}. Geburtstag!
+              </div>
+              <span style={{
+                fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap',
+                padding: '2px 8px', borderRadius: 20,
+                background: '#fce7f3', color: '#be185d',
+              }}>
+                {bday.date.toLocaleDateString('de-CH', { day: 'numeric', month: 'long' })}
+              </span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#be185d', fontWeight: 600, marginTop: 4 }}>
+              {bday.days === 0 ? '🎉 Heute!' : bday.days === 1 ? 'Morgen!' : `Noch ${bday.days} Tage`}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

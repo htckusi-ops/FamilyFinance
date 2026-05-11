@@ -117,6 +117,7 @@ export default function SettingsPage() {
     if (u.name) patch.name = u.name;
     if (u.color) patch.color = u.color;
     if (u.age_group) patch.age_group = u.age_group;
+    patch.birthdate = u.birthdate || null;
     patch.pin_required = u.pin_required ? 1 : 0;
     if (u.pin) patch.pin = u.pin;
     if (u.password) patch.password = u.password;
@@ -513,6 +514,12 @@ export default function SettingsPage() {
                 </div>
               </>
             )}
+
+            <div>
+              <label className="text-sm font-semibold mb-1" style={{ display: 'block' }}>🎂 Geburtstag</label>
+              <input type="date" value={editUser.birthdate || ''}
+                onChange={e => setEditUser(u => ({ ...u, birthdate: e.target.value }))} />
+            </div>
 
             <button className="btn-primary w-full" onClick={saveUser}>Speichern ✓</button>
           </div>

@@ -16,7 +16,7 @@ router.get('/:id/dashboard', (req, res) => {
   if (req.user.role !== 'parent' && req.user.id !== uid) {
     return res.status(403).json({ error: 'Forbidden' });
   }
-  const user = db.prepare('SELECT id,name,role,photo,color FROM users WHERE id=?').get(uid);
+  const user = db.prepare('SELECT id,name,role,photo,color,birthdate FROM users WHERE id=?').get(uid);
   if (!user) return res.status(404).json({ error: 'Not found' });
 
   const account = db.prepare('SELECT balance, savings_balance FROM accounts WHERE user_id=?').get(uid);
@@ -72,7 +72,7 @@ router.patch('/:id', parentOnly, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
   if (!user) return res.status(404).json({ error: 'Not found' });
 
-  const { name, color, pin_required, pin, password, age_group } = req.body;
+  const { name, color, pin_required, pin, password, age_group, birthdate } = req.body;
   const updates = {};
   if (name) updates.name = name;
   if (color) updates.color = color;
@@ -80,6 +80,7 @@ router.patch('/:id', parentOnly, (req, res) => {
   if (pin) updates.pin_hash = bcrypt.hashSync(String(pin), 10);
   if (password) updates.password_hash = bcrypt.hashSync(password, 10);
   if (age_group) updates.age_group = age_group;
+  if (birthdate !== undefined) updates.birthdate = birthdate || null;
 
   const sets = Object.keys(updates).map(k => `${k}=?`).join(',');
   if (sets) {
