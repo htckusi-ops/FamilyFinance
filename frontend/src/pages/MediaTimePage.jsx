@@ -52,12 +52,14 @@ function sessionElapsedSeconds(startedAt) {
   return Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
 }
 
-// For a session + usage data, compute remaining seconds for one user
-function remainingForUser(usage, elapsedSeconds) {
-  const availToday = usage.remainingToday * 60;   // remaining before session
-  const availWeek  = usage.remainingWeek  * 60;
-  const available  = Math.min(availToday, availWeek);
-  return Math.max(0, available - elapsedSeconds);
+// Compute timer values for one user in a session
+function timerForUser(usage, elapsedSeconds, sessionLimitMinutes) {
+  const budgetSeconds = Math.min(usage.remainingToday, usage.remainingWeek) * 60;
+  const sessionSeconds = sessionLimitMinutes ? sessionLimitMinutes * 60 : null;
+  const totalSeconds = sessionSeconds !== null ? Math.min(sessionSeconds, budgetSeconds) : budgetSeconds;
+  const remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds);
+  const warnSeconds = (usage.config?.warn_before_minutes ?? 2) * 60;
+  return { totalSeconds, remainingSeconds, warnSeconds };
 }
 
 // ── Mini progress bar ──────────────────────────────────────────────
@@ -81,14 +83,12 @@ function MiniBar({ label, used, total, color = '#6366f1' }) {
 function SessionCard({ session, usageMap, users, now, onStop, warnedRef, alarmedRef }) {
   const elapsedSeconds = Math.floor((now - new Date(session.started_at).getTime()) / 1000);
 
-  // Per-user remaining
+  // Per-user remaining — capped by session limit if set
   const perUser = session.user_ids.map(uid => {
     const usage = usageMap[uid];
     if (!usage) return { uid, remainingSeconds: 0, totalSeconds: 0, warnSeconds: 120 };
-    const remaining = remainingForUser(usage, elapsedSeconds);
-    const totalAvail = Math.min(usage.remainingToday, usage.remainingWeek) * 60;
-    const warnSeconds = (usage.config?.warn_before_minutes ?? 2) * 60;
-    return { uid, remainingSeconds: remaining, totalSeconds: totalAvail, warnSeconds };
+    const { totalSeconds, remainingSeconds, warnSeconds } = timerForUser(usage, elapsedSeconds, session.session_limit_minutes);
+    return { uid, remainingSeconds, totalSeconds, warnSeconds };
   });
 
   // Effective remaining = min of all participants
@@ -121,7 +121,10 @@ function SessionCard({ session, usageMap, users, now, onStop, warnedRef, alarmed
           <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
             {isGroup ? '👥 Gemeinsam' : users.find(u => u.id === session.user_ids[0])?.name}
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{categoryLabel}</div>
+          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+            {categoryLabel}
+            {session.session_limit_minutes ? ` · ${fmtMin(session.session_limit_minutes)}` : ''}
+          </div>
         </div>
         <button
           onClick={() => onStop(session.id)}
@@ -211,6 +214,7 @@ export default function MediaTimePage() {
   const [startModal, setStartModal] = useState(false);
   const [startSelected, setStartSelected] = useState([]);
   const [startCategory, setStartCategory] = useState('passive');
+  const [startLimitMinutes, setStartLimitMinutes] = useState('');
   const [configUser, setConfigUser] = useState(null);
   const [configForm, setConfigForm] = useState({});
   const warnedRef  = useRef(new Set());
@@ -258,11 +262,13 @@ export default function MediaTimePage() {
 
   async function startSession() {
     if (startSelected.length === 0) return toast('Bitte mindestens ein Kind auswählen', 'error');
+    const sessionLimitMinutes = startLimitMinutes ? Number(startLimitMinutes) : null;
     try {
-      await api.post('/media/sessions/start', { userIds: startSelected, category: startCategory });
+      await api.post('/media/sessions/start', { userIds: startSelected, category: startCategory, sessionLimitMinutes });
       toast('Session gestartet ▶️', 'success');
       setStartModal(false);
       setStartSelected([]);
+      setStartLimitMinutes('');
       load();
     } catch (err) {
       toast(err.response?.data?.error || 'Fehler', 'error');
@@ -282,7 +288,12 @@ export default function MediaTimePage() {
   }
 
   async function saveConfig() {
-    await api.post(`/media/config/${configUser.id}`, configForm);
+    await api.post(`/media/config/${configUser.id}`, {
+      daily_limit_minutes:  Math.max(1, Number(configForm.daily_limit_minutes)  || 60),
+      weekly_limit_minutes: Math.max(1, Number(configForm.weekly_limit_minutes) || 300),
+      warn_before_minutes:  Math.max(1, Number(configForm.warn_before_minutes)  || 2),
+      active_half_count: configForm.active_half_count,
+    });
     toast('Limits gespeichert ✓', 'success');
     setConfigUser(null);
     load();
@@ -290,9 +301,9 @@ export default function MediaTimePage() {
 
   function openConfig(child) {
     setConfigForm({
-      daily_limit_minutes: child.config?.daily_limit_minutes ?? 60,
-      weekly_limit_minutes: child.config?.weekly_limit_minutes ?? 300,
-      warn_before_minutes: child.config?.warn_before_minutes ?? 2,
+      daily_limit_minutes:  String(child.config?.daily_limit_minutes  ?? 60),
+      weekly_limit_minutes: String(child.config?.weekly_limit_minutes ?? 300),
+      warn_before_minutes:  String(child.config?.warn_before_minutes  ?? 2),
       active_half_count: child.config?.active_half_count ?? 0,
     });
     setConfigUser(child);
@@ -315,9 +326,9 @@ export default function MediaTimePage() {
           <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
             {(() => {
               const elapsed = Math.floor((now - new Date(mySession.started_at).getTime()) / 1000);
-              const remaining = myUsage ? remainingForUser(myUsage, elapsed) : 0;
-              const totalAvail = myUsage ? Math.min(myUsage.remainingToday, myUsage.remainingWeek) * 60 : 0;
-              const warnSec = (myUsage?.config?.warn_before_minutes ?? 2) * 60;
+              const { totalSeconds: totalAvail, remainingSeconds: remaining, warnSeconds: warnSec } = myUsage
+                ? timerForUser(myUsage, elapsed, mySession.session_limit_minutes)
+                : { totalSeconds: 0, remainingSeconds: 0, warnSeconds: 120 };
 
               // Audio
               if (!warnedRef.current.has(mySession.id) && remaining <= warnSec && remaining > 0) {
@@ -432,7 +443,7 @@ export default function MediaTimePage() {
           <button
             className="btn-primary w-full"
             style={{ marginTop: 8 }}
-            onClick={() => { setStartSelected([]); setStartCategory('passive'); setStartModal(true); }}
+            onClick={() => { setStartSelected([]); setStartCategory('passive'); setStartLimitMinutes(''); setStartModal(true); }}
           >
             ▶️ Neue Session starten
           </button>
@@ -548,6 +559,24 @@ export default function MediaTimePage() {
             </div>
           </div>
 
+          {/* Optional session duration */}
+          <div>
+            <div style={{ fontWeight:700, marginBottom:8, fontSize:'0.9rem' }}>⏱ Sitzungsdauer (optional)</div>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <input
+                type="number" min="1" max="240"
+                placeholder="z.B. 15"
+                value={startLimitMinutes}
+                onChange={e => setStartLimitMinutes(e.target.value)}
+                style={{ flex:1 }}
+              />
+              <span style={{ fontWeight:600, color:'#64748b', whiteSpace:'nowrap' }}>Minuten</span>
+            </div>
+            <div style={{ fontSize:'0.72rem', color:'#94a3b8', marginTop:4 }}>
+              Leer = gesamtes verfügbares Tages-/Wochenbudget als Timer
+            </div>
+          </div>
+
           {/* Preview remaining time for selected children */}
           {startSelected.length > 0 && (
             <div style={{ background:'#f8faff', borderRadius:12, padding:12 }}>
@@ -590,7 +619,7 @@ export default function MediaTimePage() {
               </label>
               <input type="number" min="5" max="600"
                 value={configForm.daily_limit_minutes}
-                onChange={e => setConfigForm(f => ({ ...f, daily_limit_minutes: Number(e.target.value) }))} />
+                onChange={e => setConfigForm(f => ({ ...f, daily_limit_minutes: e.target.value }))} />
               <div style={{ fontSize:'0.72rem', color:'#94a3b8', marginTop:4 }}>
                 Empfehlung (AWMF): {configUser.age_group === 'preschool' ? '30 Min' : configUser.age_group === 'teen' ? '120 Min' : '60 Min'}
               </div>
@@ -601,7 +630,7 @@ export default function MediaTimePage() {
               </label>
               <input type="number" min="30" max="4200"
                 value={configForm.weekly_limit_minutes}
-                onChange={e => setConfigForm(f => ({ ...f, weekly_limit_minutes: Number(e.target.value) }))} />
+                onChange={e => setConfigForm(f => ({ ...f, weekly_limit_minutes: e.target.value }))} />
               <div style={{ fontSize:'0.72rem', color:'#94a3b8', marginTop:4 }}>
                 Empfehlung: {configUser.age_group === 'preschool' ? '120 Min/Wo' : configUser.age_group === 'teen' ? '600 Min/Wo' : '300 Min/Wo'}
               </div>
@@ -612,7 +641,7 @@ export default function MediaTimePage() {
               </label>
               <input type="number" min="1" max="30"
                 value={configForm.warn_before_minutes}
-                onChange={e => setConfigForm(f => ({ ...f, warn_before_minutes: Number(e.target.value) }))} />
+                onChange={e => setConfigForm(f => ({ ...f, warn_before_minutes: e.target.value }))} />
             </div>
             <label style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
               <div>

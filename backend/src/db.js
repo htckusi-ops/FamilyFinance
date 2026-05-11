@@ -231,6 +231,7 @@ function migrate() {
     PRIMARY KEY (session_id, user_id)
   )`);
   } catch {}
+  try { db.exec('ALTER TABLE media_sessions ADD COLUMN session_limit_minutes REAL'); } catch {}
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS reward_targets (
       reward_id INTEGER NOT NULL REFERENCES rewards(id) ON DELETE CASCADE,

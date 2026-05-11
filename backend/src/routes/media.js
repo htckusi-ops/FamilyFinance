@@ -152,7 +152,9 @@ router.post('/sessions/start', (req, res) => {
     if (active) return res.status(400).json({ error: 'Kind hat bereits eine aktive Session' });
   }
 
-  const session = db.prepare('INSERT INTO media_sessions (category) VALUES (?)').run(category);
+  const { sessionLimitMinutes } = req.body;
+  const session = db.prepare('INSERT INTO media_sessions (category, session_limit_minutes) VALUES (?,?)')
+    .run(category, sessionLimitMinutes ? Number(sessionLimitMinutes) : null);
   const sid = session.lastInsertRowid;
   const ins = db.prepare('INSERT INTO media_session_users (session_id,user_id) VALUES (?,?)');
   for (const uid of userIds) ins.run(sid, uid);
