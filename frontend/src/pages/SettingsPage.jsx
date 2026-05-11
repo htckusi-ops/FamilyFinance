@@ -13,7 +13,7 @@ export default function SettingsPage() {
   const [users, setUsers] = useState([]);
   const [backups, setBackups] = useState([]);
   const [addModal, setAddModal] = useState(false);
-  const [notifyConfig, setNotifyConfig] = useState({ telegram_chat_id: '', events: [] });
+  const [notifyConfig, setNotifyConfig] = useState({ telegram_chat_id: '', signal_recipient: '', threema_to_id: '', events: [] });
   const [form, setForm] = useState({ name: '', role: 'child', color: '#FF9800', pin_required: false, pin: '', password: '' });
   const [tokens, setTokens] = useState([]);
   const [newTokenName, setNewTokenName] = useState('');
@@ -180,11 +180,49 @@ export default function SettingsPage() {
 
       {/* Notifications */}
       <div className="card mb-4">
-        <h2 className="font-bold mb-3">🔔 Telegram-Benachrichtigungen</h2>
-        <div className="flex flex-col gap-2">
-          <input placeholder="Telegram Chat ID" value={notifyConfig.telegram_chat_id || ''}
-            onChange={e => setNotifyConfig(n => ({ ...n, telegram_chat_id: e.target.value }))} />
-          <p className="text-sm text-muted">Bot-Token wird in der .env Datei gesetzt. Chat-ID findest du über @userinfobot auf Telegram.</p>
+        <h2 className="font-bold mb-3">🔔 Benachrichtigungen</h2>
+        <div className="flex flex-col gap-4">
+
+          {/* Telegram */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span style={{ fontSize: '1.2rem' }}>✈️</span>
+              <span className="font-semibold" style={{ fontSize: '0.9rem' }}>Telegram</span>
+            </div>
+            <input placeholder="Chat ID (z.B. 123456789)" value={notifyConfig.telegram_chat_id || ''}
+              onChange={e => setNotifyConfig(n => ({ ...n, telegram_chat_id: e.target.value }))} />
+            <p className="text-xs text-muted mt-1">Bot-Token via <code>TELEGRAM_BOT_TOKEN</code> Env-Variable. Chat-ID über @userinfobot ermitteln.</p>
+          </div>
+
+          {/* Signal */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span style={{ fontSize: '1.2rem' }}>🔵</span>
+              <span className="font-semibold" style={{ fontSize: '0.9rem' }}>Signal</span>
+            </div>
+            <input placeholder="Empfänger-Nummer (z.B. +41791234567)" value={notifyConfig.signal_recipient || ''}
+              onChange={e => setNotifyConfig(n => ({ ...n, signal_recipient: e.target.value }))} />
+            <p className="text-xs text-muted mt-1">
+              Benötigt <a href="https://github.com/bbernhard/signal-cli-rest-api" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>signal-cli-rest-api</a> (Docker).
+              Env-Variablen: <code>SIGNAL_CLI_API_URL</code> und <code>SIGNAL_SENDER</code>.
+            </p>
+          </div>
+
+          {/* Threema */}
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span style={{ fontSize: '1.2rem' }}>🟢</span>
+              <span className="font-semibold" style={{ fontSize: '0.9rem' }}>Threema</span>
+            </div>
+            <input placeholder="Threema-ID (8 Zeichen, z.B. ABCD1234)" value={notifyConfig.threema_to_id || ''}
+              onChange={e => setNotifyConfig(n => ({ ...n, threema_to_id: e.target.value.toUpperCase() }))}
+              maxLength={8} style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+            <p className="text-xs text-muted mt-1">
+              Erfordert <a href="https://gateway.threema.ch" target="_blank" rel="noreferrer" style={{ color: '#6366f1' }}>Threema Gateway</a> (kostenpflichtig).
+              Env-Variablen: <code>THREEMA_FROM_ID</code> und <code>THREEMA_API_SECRET</code>.
+            </p>
+          </div>
+
           <button className="btn-primary" onClick={saveNotify}>Speichern</button>
         </div>
       </div>
