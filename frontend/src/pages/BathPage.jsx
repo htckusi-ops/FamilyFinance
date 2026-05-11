@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import Avatar from '../components/Avatar';
 import Modal from '../components/Modal';
 
 export default function BathPage() {
   const { user } = useAuth();
   const toast = useToast();
+  const confirmDialog = useConfirm();
   const isParent = user.role === 'parent';
   const [status, setStatus] = useState(null);
   const [allChildren, setAllChildren] = useState([]);
@@ -33,6 +35,7 @@ export default function BathPage() {
   }
 
   async function undoLast() {
+    if (!await confirmDialog('Letzten Badeintrag wirklich löschen?')) return;
     await api.delete('/bath/last');
     toast('Letzter Eintrag rückgängig gemacht', 'success');
     load();

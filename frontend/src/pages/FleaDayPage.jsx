@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import Modal from '../components/Modal';
 import BarcodeScanner from '../components/BarcodeScanner';
 import Avatar from '../components/Avatar';
@@ -12,6 +13,7 @@ const CONDITIONS = ['neu', 'sehr gut', 'gut', 'akzeptabel'];
 export default function FleaDayPage() {
   const { id } = useParams();
   const toast = useToast();
+  const confirmDialog = useConfirm();
   const [day, setDay] = useState(null);
   const [items, setItems] = useState([]);
   const [children, setChildren] = useState([]);
@@ -160,6 +162,7 @@ export default function FleaDayPage() {
   }
 
   async function deleteItem(item) {
+    if (!await confirmDialog(`Artikel "${item.name}" wirklich löschen?`)) return;
     await api.delete(`/flea/items/${item.id}`);
     load();
   }

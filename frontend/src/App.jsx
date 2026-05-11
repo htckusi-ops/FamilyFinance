@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { ConfirmProvider } from './context/ConfirmContext';
 import LoginPage from './pages/LoginPage';
 import ChildDashboard from './pages/ChildDashboard';
 import ParentDashboard from './pages/ParentDashboard';
@@ -58,9 +59,11 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <ConfirmProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </ConfirmProvider>
       </ToastProvider>
     </AuthProvider>
   );

@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import Modal from '../components/Modal';
 
 export default function FleaMarketPage({ childId }) {
   const { user } = useAuth();
   const toast = useToast();
+  const confirmDialog = useConfirm();
   const isParent = user.role === 'parent';
   const [days, setDays] = useState([]);
   const [archive, setArchive] = useState([]);
@@ -31,6 +33,7 @@ export default function FleaMarketPage({ childId }) {
     load();
   }
   async function deleteDay(id) {
+    if (!await confirmDialog('Flohmarkttag wirklich löschen? Alle Artikel dieses Tages werden ebenfalls gelöscht.')) return;
     await api.delete(`/flea/days/${id}`);
     load();
   }

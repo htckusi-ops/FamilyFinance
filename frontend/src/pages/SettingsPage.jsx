@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import Modal from '../components/Modal';
 import Avatar from '../components/Avatar';
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const toast = useToast();
+  const confirmDialog = useConfirm();
   const [users, setUsers] = useState([]);
   const [backups, setBackups] = useState([]);
   const [addModal, setAddModal] = useState(false);
@@ -60,6 +62,7 @@ export default function SettingsPage() {
   }
 
   async function revokeToken(id) {
+    if (!await confirmDialog('API-Token wirklich widerrufen?')) return;
     await api.delete(`/tokens/${id}`);
     toast('Token widerrufen', 'success');
     load();
@@ -107,7 +110,7 @@ export default function SettingsPage() {
   }
 
   async function deleteUser(uid) {
-    if (!confirm('Wirklich löschen? Alle Daten werden gelöscht.')) return;
+    if (!await confirmDialog('Benutzer wirklich löschen? Alle Daten werden unwiderruflich entfernt.')) return;
     await api.delete(`/users/${uid}`);
     load();
   }

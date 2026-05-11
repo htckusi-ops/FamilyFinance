@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import Avatar from '../components/Avatar';
 import Modal from '../components/Modal';
 import ProgressBar from '../components/ProgressBar';
@@ -33,6 +34,7 @@ const TX_LABELS = {
 
 export default function AllowancePage() {
   const toast = useToast();
+  const confirmDialog = useConfirm();
   const photoRef = useRef();
   const [children, setChildren] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -85,6 +87,7 @@ export default function AllowancePage() {
     loadDetail(selected);
   }
   async function deleteGoal(gid) {
+    if (!await confirmDialog('Sparziel wirklich löschen?')) return;
     await api.delete(`/allowance/${selected.id}/goals/${gid}`);
     loadDetail(selected);
   }

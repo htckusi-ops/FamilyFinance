@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import Modal from '../components/Modal';
 
 export default function PointsPage({ childId }) {
   const { user } = useAuth();
   const toast = useToast();
+  const confirmDialog = useConfirm();
   const isParent = user.role === 'parent';
   const [children, setChildren] = useState([]);
   const [selectedChild, setSelectedChild] = useState(childId ? String(childId) : '');
@@ -112,6 +114,7 @@ export default function PointsPage({ childId }) {
   }
 
   async function deleteJob(id) {
+    if (!await confirmDialog('Aufgabe wirklich löschen?')) return;
     await api.delete(`/points/jobs/${id}`);
     api.get('/points/jobs').then(r => setJobs(r.data));
   }

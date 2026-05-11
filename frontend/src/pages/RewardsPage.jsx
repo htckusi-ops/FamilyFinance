@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from '../context/ConfirmContext';
 import Modal from '../components/Modal';
 
 export default function RewardsPage() {
   const { user } = useAuth();
   const toast = useToast();
+  const confirmDialog = useConfirm();
   const isParent = user.role === 'parent';
   const [rewards, setRewards] = useState([]);
   const [children, setChildren] = useState([]);
@@ -57,6 +59,7 @@ export default function RewardsPage() {
   }
 
   async function del(id) {
+    if (!await confirmDialog('Belohnung wirklich löschen?')) return;
     await api.delete(`/rewards/${id}`);
     load();
   }
