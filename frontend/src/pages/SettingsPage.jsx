@@ -13,6 +13,7 @@ export default function SettingsPage() {
   const [users, setUsers] = useState([]);
   const [backups, setBackups] = useState([]);
   const [addModal, setAddModal] = useState(false);
+  const [editUser, setEditUser] = useState(null);
   const [notifyConfig, setNotifyConfig] = useState({ telegram_chat_id: '', signal_recipient: '', threema_to_id: '', events: [] });
   const [form, setForm] = useState({ name: '', role: 'child', color: '#FF9800', pin_required: false, pin: '', password: '' });
   const [tokens, setTokens] = useState([]);
@@ -21,6 +22,7 @@ export default function SettingsPage() {
   const [haChildren, setHaChildren] = useState([]);
   const [famSettings, setFamSettings] = useState({});
   const photoRef = useRef();
+  const editPhotoRef = useRef();
 
   const haBaseUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
 
@@ -109,6 +111,26 @@ export default function SettingsPage() {
     load();
   }
 
+  async function saveUser() {
+    const u = editUser;
+    const patch = {};
+    if (u.name) patch.name = u.name;
+    if (u.color) patch.color = u.color;
+    if (u.age_group) patch.age_group = u.age_group;
+    patch.pin_required = u.pin_required ? 1 : 0;
+    if (u.pin) patch.pin = u.pin;
+    if (u.password) patch.password = u.password;
+    await api.patch(`/users/${u.id}`, patch);
+    if (editPhotoRef.current?.files[0]) {
+      const fd = new FormData();
+      fd.append('photo', editPhotoRef.current.files[0]);
+      await api.post(`/users/${u.id}/photo`, fd);
+    }
+    toast(`${u.name} gespeichert ✓`, 'success');
+    setEditUser(null);
+    load();
+  }
+
   async function deleteUser(uid) {
     if (!await confirmDialog('Benutzer wirklich löschen? Alle Daten werden unwiderruflich entfernt.')) return;
     await api.delete(`/users/${uid}`);
@@ -148,10 +170,14 @@ export default function SettingsPage() {
                   <div className="text-sm text-muted">{u.role === 'parent' ? 'Elternteil' : 'Kind'}{u.pin_required ? ' · PIN' : ''}</div>
                 </div>
               </div>
-              {u.id !== user.id && !(u.role === 'parent' && users.filter(x => x.role === 'parent').length <= 1) && (
-                <button style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 8, fontSize: '0.8rem' }}
-                  onClick={() => deleteUser(u.id)}>Löschen</button>
-              )}
+              <div className="flex gap-2">
+                <button style={{ background: '#e0f2fe', color: '#0369a1', padding: '6px 10px', borderRadius: 8, fontSize: '0.85rem' }}
+                  onClick={() => setEditUser({ ...u, pin: '', password: '' })}>✏️</button>
+                {u.id !== user.id && !(u.role === 'parent' && users.filter(x => x.role === 'parent').length <= 1) && (
+                  <button style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 8, fontSize: '0.8rem' }}
+                    onClick={() => deleteUser(u.id)}>Löschen</button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -417,6 +443,80 @@ export default function SettingsPage() {
           )}
           <button className="btn-primary w-full" onClick={addUser}>Hinzufügen</button>
         </div>
+      </Modal>
+
+      {/* Edit user modal */}
+      <Modal open={!!editUser} title="Benutzer bearbeiten" onClose={() => setEditUser(null)}>
+        {editUser && (
+          <div className="flex flex-col gap-3">
+            {/* Avatar preview */}
+            <div className="flex items-center gap-3 mb-1">
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: editUser.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.6rem', overflow: 'hidden', flexShrink: 0,
+              }}>
+                {editUser.photo
+                  ? <img src={`/api${editUser.photo}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : editUser.name?.[0]?.toUpperCase()}
+              </div>
+              <div>
+                <div className="font-semibold">{editUser.name}</div>
+                <div className="text-xs text-muted">{editUser.role === 'parent' ? 'Elternteil' : 'Kind'}</div>
+              </div>
+            </div>
+
+            <input placeholder="Name" value={editUser.name || ''}
+              onChange={e => setEditUser(u => ({ ...u, name: e.target.value }))} />
+
+            <div>
+              <label className="text-sm font-semibold mb-1" style={{ display: 'block' }}>Farbe</label>
+              <div className="flex gap-2 flex-wrap">
+                {COLORS.map(c => (
+                  <button key={c} onClick={() => setEditUser(u => ({ ...u, color: c }))}
+                    style={{ width: 32, height: 32, borderRadius: '50%', background: c, border: editUser.color === c ? '3px solid #1a1a2e' : '3px solid transparent' }} />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm text-muted">Profilbild (neues Bild auswählen)</label>
+              <input type="file" ref={editPhotoRef} accept="image/*" style={{ padding: 8 }} />
+            </div>
+
+            {editUser.role === 'parent' && (
+              <input type="password" placeholder="Neues Passwort (leer lassen = unverändert)"
+                value={editUser.password || ''}
+                onChange={e => setEditUser(u => ({ ...u, password: e.target.value }))} />
+            )}
+
+            {editUser.role === 'child' && (
+              <>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={!!editUser.pin_required}
+                    onChange={e => setEditUser(u => ({ ...u, pin_required: e.target.checked }))} />
+                  <span className="text-sm">PIN erforderlich</span>
+                </label>
+                {editUser.pin_required && (
+                  <input type="number" placeholder="Neuer PIN (leer lassen = unverändert)"
+                    value={editUser.pin || ''}
+                    onChange={e => setEditUser(u => ({ ...u, pin: e.target.value }))} />
+                )}
+                <div>
+                  <label className="text-sm font-semibold mb-1" style={{ display: 'block' }}>Altersgruppe</label>
+                  <select value={editUser.age_group || 'school'}
+                    onChange={e => setEditUser(u => ({ ...u, age_group: e.target.value }))}>
+                    <option value="preschool">Vorschule (bis 6 J.)</option>
+                    <option value="school">Schulkind (7–12 J.)</option>
+                    <option value="teen">Teenager (13+ J.)</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            <button className="btn-primary w-full" onClick={saveUser}>Speichern ✓</button>
+          </div>
+        )}
       </Modal>
     </div>
   );
