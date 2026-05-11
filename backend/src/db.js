@@ -267,7 +267,7 @@ function seedBadges() {
     { key: 'first_job', name: 'Erster Mini-Job', description: 'Ersten Mini-Job erledigt', icon: '⭐' },
     { key: 'five_jobs', name: 'Fleissige Biene', description: '5 Mini-Jobs erledigt', icon: '🐝' },
     { key: 'twenty_jobs', name: 'Jobprofi', description: '20 Mini-Jobs erledigt', icon: '💼' },
-    { key: 'streak_2', name: '2 Wochen Streak', description: '2 Wochen in Folge Mini-Jobs erledigt', icon: '🔥' },
+    { key: 'streak_2', name: '2 Wochen Serie', description: '2 Wochen in Folge Mini-Jobs erledigt', icon: '🔥' },
     { key: 'streak_4', name: 'Monatsheld', description: '4 Wochen in Folge aktiv', icon: '🦸' },
     { key: 'flea_first_item', name: 'Flohmarkt-Starter', description: 'Ersten Artikel erfasst', icon: '🏷️' },
     { key: 'flea_first_sale', name: 'Flohmarkt-Profi', description: 'Ersten Artikel verkauft', icon: '💰' },

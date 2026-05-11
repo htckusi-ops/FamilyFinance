@@ -206,7 +206,7 @@ export default function PointsPage({ childId }) {
               <div className="text-center">
                 <div style={{ fontSize: '2rem' }}>🔥</div>
                 <div className="font-bold">{history.summary.streak_weeks}</div>
-                <div className="text-sm text-muted">Wochen</div>
+                <div className="text-sm text-muted">Wochen Serie</div>
               </div>
             )}
           </div>

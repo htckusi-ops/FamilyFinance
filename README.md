@@ -8,14 +8,15 @@ Familienfreundliche Web-App für Taschengeld, Punkte, Flohmarkt und Badezimmer-P
 
 | Modul | Beschreibung |
 |---|---|
-| 💰 **Taschengeld** | Guthaben pro Kind, automatische Auszahlung (wöchentlich/monatlich), Zinssimulation, Sparziele mit Fortschrittsbalken |
-| 🧾 **Ausgaben** | Eltern buchen Ausgaben mit Beschreibung und optionalem Foto (wird client-seitig auf 500 px verkleinert) |
-| ⭐ **Punkte & Jobs** | Mini-Jobs (Pflichten + Extra-Jobs), Streak-Anzeige, spontane Punkte-/Abzugsvergabe, Punkte ↔ CHF Umtausch |
-| 🎁 **Belohnungen** | Kinder beantragen Belohnungen, Eltern genehmigen; Punkte-Timeline auf Kinderdashboard |
-| 🏷️ **Flohmarkt** | Artikel erfassen (Barcode-Scan oder manuell), Etikettendruck (PDF), Kassierfunktion, Tages-Abschluss mit Erlös je Kind |
-| 🛁 **Badespass** | Gerechtes Abwechseln bei der Badezimmer-Wahl, konfigurierbare Teilnehmer, Verlauf und Rückgängig-Funktion |
-| 🔔 **Benachrichtigungen** | Telegram-Bot (optional): Belohnungsanfragen, automatische Auszahlungen |
-| ⚙️ **Einstellungen** | Familien-Einstellungen, Altersgruppen, API-Tokens (Home Assistant), Backup |
+| 💰 **Taschengeld** | Guthaben pro Kind, automatische Auszahlung (wöchentlich/monatlich), Zinssimulation auf Sparkonto, Sparziele mit Fortschrittsbalken |
+| 🧾 **Ausgaben** | Eltern buchen Ausgaben mit Beschreibung und optionalem Foto; Belege können per OCR (Tesseract) ausgelesen werden |
+| ⭐ **Punkte & Aufgaben** | Mini-Aufgaben (Haushaltspflichten + Extra-Aufgaben), Wochen-Serie-Anzeige, spontane Punktevergabe und -abzug, Punkte ↔ CHF Umtausch |
+| 🎁 **Wünsche** | Kinder beantragen Wünsche, Eltern genehmigen; Punkte-Zeitachse auf Kinderdashboard; Wünsche können für einzelne oder mehrere Kinder gelten (gemeinsame Wünsche: alle müssen Punkte erreichen) |
+| 💹 **Finanzübersicht** | Monatliche und jährliche Kosten für Eltern: Taschengeld, Belohnungen, Zinsen; 12-Monats-Verlauf als Diagramm |
+| 🏷️ **Flohmarkt** | Artikel erfassen (Barcode-Scan mit automatischer Produktsuche), Etikettendruck (PDF mit Fotos), Kassierfunktion (QR-Scan), Tausch-Option, Rückgängig, Tages-Abschluss mit Erlös je Kind |
+| 🛁 **Badeplan** | Gerechtes Abwechseln bei der Badezimmer-Wahl, konfigurierbarer Teilnehmerkreis, Verlauf und Rückgängig |
+| 🔔 **Benachrichtigungen** | Telegram, Signal (signal-cli) und Threema (Gateway) – optional, pro Elternteil konfigurierbar |
+| ⚙️ **Einstellungen** | Familien-Einstellungen, Altersgruppen, API-Tokens (Home Assistant), Backup, pädagogische Optionen (Serie, Abzeichen) |
 
 ---
 
@@ -103,8 +104,8 @@ backend ──▶ SQLite (data/familyfinance.db)
 
 | Schicht | Technologie |
 |---|---|
-| Backend | Node.js · Express · better-sqlite3 · node-cron · PDFKit |
-| Frontend | React 18 · Vite · @zxing/browser (Barcode) |
+| Backend | Node.js 20 · Express · better-sqlite3 · node-cron · PDFKit · jimp |
+| Frontend | React 18 · Vite · @zxing/browser (Barcode) · recharts |
 | Datenbank | SQLite (WAL-Modus, Foreign Keys aktiv) |
 | Auth | JWT (Eltern) + optionaler PIN (Kinder) + API-Tokens |
 | Proxy | nginx:alpine |
@@ -119,21 +120,22 @@ FamilyFinance/
 ├── backend/
 │   ├── src/
 │   │   ├── routes/          # API-Endpunkte
-│   │   ├── services/        # Badges, PDF, Telegram
-│   │   ├── middleware/       # auth.js, upload.js
+│   │   ├── services/        # Abzeichen, PDF, Benachrichtigungen
+│   │   ├── middleware/       # auth.js, upload.js (jimp-Bildverkleinerung)
 │   │   └── db.js            # SQLite-Setup + automatische Migrationen
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/           # Dashboard, Flohmarkt, Punkte, …
-│   │   ├── components/      # Modal, Avatar, BarcodeScanner, …
+│   │   ├── pages/           # Dashboard, Flohmarkt, Punkte, Finanzübersicht …
+│   │   ├── components/      # Modal, Avatar, BarcodeScanner, PointsTimeline …
+│   │   ├── context/         # AuthContext, ToastContext, ConfirmContext
 │   │   ├── hooks/           # useScanner
 │   │   └── api/             # axios-Client
 │   └── Dockerfile
 ├── nginx/
 │   └── nginx.conf
 ├── scripts/
-│   └── nas-update.sh        # Update-Skript für Synology Task Scheduler
+│   └── nas-update.sh
 ├── data/                    # SQLite-DB (gitignored, Volume-Mount)
 ├── uploads/                 # Fotos und Uploads (gitignored, Volume-Mount)
 ├── backups/                 # Backups (gitignored, Volume-Mount)
@@ -150,14 +152,19 @@ FamilyFinance/
 
 ## Konfiguration
 
-Die wichtigsten Einstellungen befinden sich direkt in `docker-compose.yml`:
+Die wichtigsten Einstellungen befinden sich in `docker-compose.yml`:
 
 ```yaml
 environment:
-  - TZ=Europe/Zurich          # Zeitzone
-  - JWT_SECRET=HIER-AENDERN   # Langen zufälligen String verwenden!
-  - TELEGRAM_BOT_TOKEN=       # Optional: Telegram-Benachrichtigungen
-  - TELEGRAM_CHAT_ID=         # Optional: Telegram-Chat-ID
+  - TZ=Europe/Zurich            # Zeitzone
+  - JWT_SECRET=HIER-AENDERN     # Langen zufälligen String verwenden!
+  - TELEGRAM_BOT_TOKEN=         # Optional: Telegram-Benachrichtigungen
+  # Signal (signal-cli-rest-api Docker-Container erforderlich):
+  - SIGNAL_CLI_API_URL=         # z.B. http://signal-cli:8080
+  - SIGNAL_SENDER=              # Registrierte Telefonnummer, z.B. +41791234567
+  # Threema Gateway (kostenpflichtig, gateway.threema.ch):
+  - THREEMA_FROM_ID=            # Eigene Threema-Gateway-ID (8 Zeichen)
+  - THREEMA_API_SECRET=         # API-Secret aus dem Gateway-Portal
 ```
 
 > **Sicherheit:** `JWT_SECRET` **muss** vor dem ersten Start auf einen eigenen Wert gesetzt werden.
@@ -170,6 +177,28 @@ Für Barcode-Scanner und Kamerazugriff auf Smartphones ist HTTPS **dringend empf
 
 Synology Reverse Proxy: Systemsteuerung → Anmeldeportal → Erweitert → Reverse-Proxy  
 → HTTPS:443 auf HTTP:localhost:3000 weiterleiten + Let's Encrypt Zertifikat
+
+---
+
+## Benachrichtigungen einrichten
+
+### Telegram
+1. Bot über @BotFather erstellen → Token notieren
+2. Token als `TELEGRAM_BOT_TOKEN` in `docker-compose.yml` eintragen
+3. Chat-ID über @userinfobot ermitteln
+4. In der App (Einstellungen → Benachrichtigungen) Chat-ID pro Elternteil eintragen
+
+### Signal
+Erfordert einen laufenden [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api)-Container:
+1. Container starten und eine Telefonnummer registrieren
+2. `SIGNAL_CLI_API_URL` und `SIGNAL_SENDER` in `docker-compose.yml` setzen
+3. In der App Empfänger-Nummer (z.B. `+41791234567`) pro Elternteil eintragen
+
+### Threema
+Erfordert ein [Threema Gateway](https://gateway.threema.ch)-Konto (kostenpflichtig, ~0.10 CHF/Nachricht):
+1. Gateway-ID und API-Secret aus dem Portal holen
+2. `THREEMA_FROM_ID` und `THREEMA_API_SECRET` in `docker-compose.yml` setzen
+3. In der App die eigene Threema-ID (8 Zeichen) pro Elternteil eintragen
 
 ---
 
@@ -193,7 +222,7 @@ Einstellungen → Backup → „Jetzt sichern" → ZIP-Download (DB + Uploads)
 | [KONZEPT.md](KONZEPT.md) | Vollständige Funktionsbeschreibung, DB-Schema, UX-Richtlinien |
 | [docs/SYNOLOGY-GUI-INSTALLATION.md](docs/SYNOLOGY-GUI-INSTALLATION.md) | Schritt-für-Schritt-Installation ohne SSH |
 | [docs/ENTWICKLUNG-WORKFLOW.md](docs/ENTWICKLUNG-WORKFLOW.md) | Lokale Entwicklung, Branching, Migrationen |
-| [docs/PAEDAGOGIK.md](docs/PAEDAGOGIK.md) | Pädagogische Analyse der einzelnen Features |
+| [docs/PAEDAGOGIK.md](docs/PAEDAGOGIK.md) | Pädagogische Analyse, Forschungsstand, Empfehlungen mit Quellen |
 
 ---
 

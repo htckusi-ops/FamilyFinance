@@ -83,7 +83,7 @@ export default function SettingsPage() {
       lines.push(`      - name: "${child.name} Punkte"`);
       lines.push(`        value_template: "{{ value_json.children | selectattr('id','eq',${child.id}) | map(attribute='points') | first }}"`);
       lines.push(`        unit_of_measurement: "Pkt"`);
-      lines.push(`      - name: "${child.name} Streak"`);
+      lines.push(`      - name: "${child.name} Serie"`);
       lines.push(`        value_template: "{{ value_json.children | selectattr('id','eq',${child.id}) | map(attribute='streak_weeks') | first }}"`);
       lines.push(`        unit_of_measurement: "Wochen"`);
     });
@@ -252,8 +252,8 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-3">
           <label className="flex items-center justify-between gap-2">
             <div>
-              <div className="font-semibold text-sm">🔥 Streak anzeigen</div>
-              <div className="text-muted" style={{ fontSize: '0.78rem' }}>Wochen-Streak für Kinder sichtbar machen</div>
+              <div className="font-semibold text-sm">🔥 Serie anzeigen</div>
+              <div className="text-muted" style={{ fontSize: '0.78rem' }}>Wochen-Serie für Kinder sichtbar machen</div>
             </div>
             <input type="checkbox"
               checked={famSettings.show_streak !== 'false'}
@@ -361,7 +361,7 @@ export default function SettingsPage() {
           </summary>
           <div className="mt-2 flex flex-col gap-1" style={{ fontSize: '0.75rem' }}>
             {[
-              ['GET', '/api/ha/summary', 'Alle Kinder (Guthaben, Punkte, Streak, Sparziele)'],
+              ['GET', '/api/ha/summary', 'Alle Kinder (Guthaben, Punkte, Serie, Sparziele)'],
               ['GET', `/api/ha/child/:id`, 'Einzelnes Kind'],
               ['GET', '/api/ha/pending-claims', 'Offene Belohnungsanfragen'],
             ].map(([method, path, desc]) => (

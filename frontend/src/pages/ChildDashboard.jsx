@@ -66,7 +66,7 @@ export default function ChildDashboard() {
         <Avatar user={user} size={64} />
         <div>
           <h1 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{greeting()}, {user.name}! 👋</h1>
-          {showStreak && streak > 0 && <p style={{ color: 'var(--accent)', fontWeight: 700 }}>🔥 {streak} Wochen Streak!</p>}
+          {showStreak && streak > 0 && <p style={{ color: 'var(--accent)', fontWeight: 700 }}>🔥 {streak} Wochen in Serie!</p>}
         </div>
       </div>
 
