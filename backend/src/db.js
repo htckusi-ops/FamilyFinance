@@ -205,6 +205,33 @@ function migrate() {
   try { db.exec('ALTER TABLE allowance_config ADD COLUMN allow_self_transfer_to_savings INTEGER DEFAULT 0'); } catch {}
   try { db.exec('ALTER TABLE allowance_config ADD COLUMN allow_self_transfer_from_savings INTEGER DEFAULT 0'); } catch {}
   try {
+    db.exec(`CREATE TABLE IF NOT EXISTS media_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    daily_limit_minutes INTEGER DEFAULT 60,
+    weekly_limit_minutes INTEGER DEFAULT 300,
+    warn_before_minutes INTEGER DEFAULT 2,
+    active_half_count INTEGER DEFAULT 0
+  )`);
+  } catch {}
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS media_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at TEXT NOT NULL DEFAULT (datetime('now')),
+    ended_at TEXT,
+    duration_minutes REAL,
+    category TEXT DEFAULT 'passive' CHECK(category IN ('passive','active')),
+    notes TEXT
+  )`);
+  } catch {}
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS media_session_users (
+    session_id INTEGER NOT NULL REFERENCES media_sessions(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (session_id, user_id)
+  )`);
+  } catch {}
+  try {
     db.exec(`CREATE TABLE IF NOT EXISTS reward_targets (
       reward_id INTEGER NOT NULL REFERENCES rewards(id) ON DELETE CASCADE,
       user_id   INTEGER NOT NULL REFERENCES users(id)  ON DELETE CASCADE,
