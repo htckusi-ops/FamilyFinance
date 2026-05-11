@@ -38,6 +38,12 @@ router.get('/children', (_req, res) => {
   res.json(children);
 });
 
+// List parents for login screen (public — no sensitive data)
+router.get('/parents', (_req, res) => {
+  const parents = db.prepare('SELECT id, name, photo, color FROM users WHERE role = ?').all('parent');
+  res.json(parents);
+});
+
 function safeUser(u) {
   const { password_hash, pin_hash, ...rest } = u;
   return rest;
