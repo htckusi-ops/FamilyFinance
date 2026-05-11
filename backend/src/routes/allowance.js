@@ -60,6 +60,56 @@ router.post('/:id/savings/deposit', parentOnly, (req, res) => {
   res.json({ ok: true });
 });
 
+// Child-initiated transfer between balance and savings
+router.post('/:id/savings/self-transfer', (req, res) => {
+  const uid = Number(req.params.id);
+  if (req.user.role !== 'parent' && req.user.id !== uid) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const { amount, direction } = req.body;
+  const amt = Number(amount);
+  if (!amt || amt <= 0) return res.status(400).json({ error: 'Ungültiger Betrag' });
+  if (direction !== 'to_savings' && direction !== 'from_savings') {
+    return res.status(400).json({ error: 'Ungültige Richtung' });
+  }
+
+  const config = db.prepare('SELECT * FROM allowance_config WHERE user_id=?').get(uid);
+  if (req.user.role !== 'parent') {
+    if (direction === 'to_savings' && !config?.allow_self_transfer_to_savings) {
+      return res.status(403).json({ error: 'Nicht erlaubt' });
+    }
+    if (direction === 'from_savings' && !config?.allow_self_transfer_from_savings) {
+      return res.status(403).json({ error: 'Nicht erlaubt' });
+    }
+  }
+
+  const acc = db.prepare('SELECT * FROM accounts WHERE user_id=?').get(uid);
+  if (direction === 'to_savings' && acc.balance < amt) {
+    return res.status(400).json({ error: 'Nicht genug Guthaben' });
+  }
+  if (direction === 'from_savings' && acc.savings_balance < amt) {
+    return res.status(400).json({ error: 'Nicht genug in der Sparbüchse' });
+  }
+
+  if (direction === 'to_savings') {
+    db.prepare('UPDATE accounts SET balance=balance-?, savings_balance=savings_balance+? WHERE user_id=?')
+      .run(amt, amt, uid);
+    db.prepare('INSERT INTO transactions (user_id,amount,type,description) VALUES (?,?,?,?)')
+      .run(uid, -amt, 'savings_deposit', 'Auf Sparbüchse');
+    checkBadge(uid, 'first_save');
+    const updated = db.prepare('SELECT savings_balance FROM accounts WHERE user_id=?').get(uid);
+    if (updated.savings_balance >= 100) checkBadge(uid, 'saver_100');
+  } else {
+    db.prepare('UPDATE accounts SET savings_balance=savings_balance-?, balance=balance+? WHERE user_id=?')
+      .run(amt, amt, uid);
+    db.prepare('INSERT INTO transactions (user_id,amount,type,description) VALUES (?,?,?,?)')
+      .run(uid, amt, 'savings_withdrawal', 'Von Sparbüchse');
+  }
+
+  res.json({ ok: true });
+});
+
 router.post('/:id/config', parentOnly, (req, res) => {
   const uid = Number(req.params.id);
   const { amount, interval, interest_rate, next_payout_at } = req.body;

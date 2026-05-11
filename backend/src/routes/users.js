@@ -21,6 +21,9 @@ router.get('/:id/dashboard', (req, res) => {
 
   const account = db.prepare('SELECT balance, savings_balance FROM accounts WHERE user_id=?').get(uid);
   const points = db.prepare('SELECT balance, streak_weeks FROM points WHERE user_id=?').get(uid);
+  const allowanceConfig = db.prepare(
+    'SELECT allow_self_transfer_to_savings, allow_self_transfer_from_savings FROM allowance_config WHERE user_id=?'
+  ).get(uid);
   const goals = db.prepare('SELECT * FROM savings_goals WHERE user_id=? ORDER BY created_at DESC').all(uid);
   const rewardClaims = db.prepare(`
     SELECT rc.*, r.name as reward_name, r.points_required, r.image
@@ -41,7 +44,7 @@ router.get('/:id/dashboard', (req, res) => {
     'SELECT * FROM transactions WHERE user_id=? ORDER BY created_at DESC LIMIT 10'
   ).all(uid);
 
-  res.json({ user, account, points, goals, rewardClaims, badges, fleaEarnings, recentTx });
+  res.json({ user, account, points, allowanceConfig, goals, rewardClaims, badges, fleaEarnings, recentTx });
 });
 
 router.post('/', parentOnly, (req, res) => {
@@ -72,7 +75,8 @@ router.patch('/:id', parentOnly, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id=?').get(uid);
   if (!user) return res.status(404).json({ error: 'Not found' });
 
-  const { name, color, pin_required, pin, password, age_group, birthdate } = req.body;
+  const { name, color, pin_required, pin, password, age_group, birthdate,
+          allow_self_transfer_to_savings, allow_self_transfer_from_savings } = req.body;
   const updates = {};
   if (name) updates.name = name;
   if (color) updates.color = color;
@@ -86,6 +90,17 @@ router.patch('/:id', parentOnly, (req, res) => {
   if (sets) {
     db.prepare(`UPDATE users SET ${sets} WHERE id=?`).run(...Object.values(updates), uid);
   }
+
+  if (allow_self_transfer_to_savings !== undefined || allow_self_transfer_from_savings !== undefined) {
+    const acUpdates = {};
+    if (allow_self_transfer_to_savings !== undefined)
+      acUpdates.allow_self_transfer_to_savings = allow_self_transfer_to_savings ? 1 : 0;
+    if (allow_self_transfer_from_savings !== undefined)
+      acUpdates.allow_self_transfer_from_savings = allow_self_transfer_from_savings ? 1 : 0;
+    const acSets = Object.keys(acUpdates).map(k => `${k}=?`).join(',');
+    db.prepare(`UPDATE allowance_config SET ${acSets} WHERE user_id=?`).run(...Object.values(acUpdates), uid);
+  }
+
   res.json({ ok: true });
 });
 

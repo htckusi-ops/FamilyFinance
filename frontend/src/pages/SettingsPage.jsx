@@ -121,6 +121,10 @@ export default function SettingsPage() {
     patch.pin_required = u.pin_required ? 1 : 0;
     if (u.pin) patch.pin = u.pin;
     if (u.password) patch.password = u.password;
+    if (u.role === 'child') {
+      patch.allow_self_transfer_to_savings = u.allow_self_transfer_to_savings ? 1 : 0;
+      patch.allow_self_transfer_from_savings = u.allow_self_transfer_from_savings ? 1 : 0;
+    }
     await api.patch(`/users/${u.id}`, patch);
     if (editPhotoRef.current?.files[0]) {
       const fd = new FormData();
@@ -173,7 +177,19 @@ export default function SettingsPage() {
               </div>
               <div className="flex gap-2">
                 <button style={{ background: '#e0f2fe', color: '#0369a1', padding: '6px 10px', borderRadius: 8, fontSize: '0.85rem' }}
-                  onClick={() => setEditUser({ ...u, pin: '', password: '' })}>✏️</button>
+                  onClick={async () => {
+                    let extra = {};
+                    if (u.role === 'child') {
+                      try {
+                        const r = await api.get(`/allowance/${u.id}`);
+                        extra = {
+                          allow_self_transfer_to_savings: !!r.data.config?.allow_self_transfer_to_savings,
+                          allow_self_transfer_from_savings: !!r.data.config?.allow_self_transfer_from_savings,
+                        };
+                      } catch {}
+                    }
+                    setEditUser({ ...u, pin: '', password: '', ...extra });
+                  }}>✏️</button>
                 {u.id !== user.id && !(u.role === 'parent' && users.filter(x => x.role === 'parent').length <= 1) && (
                   <button style={{ background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 8, fontSize: '0.8rem' }}
                     onClick={() => deleteUser(u.id)}>Löschen</button>
@@ -511,6 +527,25 @@ export default function SettingsPage() {
                     <option value="school">Schulkind (7–12 J.)</option>
                     <option value="teen">Teenager (13+ J.)</option>
                   </select>
+                </div>
+                <div style={{ background: '#f0f9ff', borderRadius: 10, padding: '10px 12px' }}>
+                  <div className="text-sm font-semibold mb-2">🐷 Sparbüchse</div>
+                  <label className="flex items-center justify-between gap-2 mb-2">
+                    <div>
+                      <div className="text-sm">Guthaben → Sparbüchse</div>
+                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>Kind darf selbst einzahlen</div>
+                    </div>
+                    <input type="checkbox" checked={!!editUser.allow_self_transfer_to_savings}
+                      onChange={e => setEditUser(u => ({ ...u, allow_self_transfer_to_savings: e.target.checked }))} />
+                  </label>
+                  <label className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-sm">Sparbüchse → Guthaben</div>
+                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>Kind darf selbst abheben</div>
+                    </div>
+                    <input type="checkbox" checked={!!editUser.allow_self_transfer_from_savings}
+                      onChange={e => setEditUser(u => ({ ...u, allow_self_transfer_from_savings: e.target.checked }))} />
+                  </label>
                 </div>
               </>
             )}

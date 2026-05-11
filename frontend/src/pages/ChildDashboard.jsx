@@ -23,6 +23,8 @@ export default function ChildDashboard() {
   const [newBadge, setNewBadge] = useState(null);
 
   const [settings, setSettings] = useState({});
+  const [transferModal, setTransferModal] = useState(null); // 'to_savings' | 'from_savings'
+  const [transferAmount, setTransferAmount] = useState('');
 
   useEffect(() => {
     load();
@@ -49,6 +51,20 @@ export default function ChildDashboard() {
     }
   }
 
+  async function doTransfer() {
+    const amt = parseFloat(transferAmount);
+    if (!amt || amt <= 0) return toast('Ungültiger Betrag', 'error');
+    try {
+      await api.post(`/allowance/${user.id}/savings/self-transfer`, { amount: amt, direction: transferModal });
+      toast(transferModal === 'to_savings' ? 'In Sparbüchse eingezahlt 🐷' : 'Aus Sparbüchse abgehoben ✓', 'success');
+      setTransferModal(null);
+      setTransferAmount('');
+      load();
+    } catch (err) {
+      toast(err.response?.data?.error || 'Fehler', 'error');
+    }
+  }
+
   if (!data) return <div className="page text-center text-muted mt-4">Lädt...</div>;
 
   const points = data.points?.balance || 0;
@@ -58,6 +74,8 @@ export default function ChildDashboard() {
   const streak = data.points?.streak_weeks || 0;
   const showStreak = settings.show_streak !== 'false';
   const showBadges = settings.show_badges !== 'false';
+  const canTransferToSavings = !!data.allowanceConfig?.allow_self_transfer_to_savings;
+  const canTransferFromSavings = !!data.allowanceConfig?.allow_self_transfer_from_savings;
 
   return (
     <div className="page">
@@ -96,7 +114,7 @@ export default function ChildDashboard() {
       </div>
 
       {/* Savings */}
-      {savings > 0 && (
+      {(savings > 0 || canTransferToSavings) && (
         <div className="card mb-4" style={{ background: 'linear-gradient(135deg,#f0fff4,#e0f2fe)' }}>
           <div className="flex items-center gap-2 mb-1">
             <span style={{ fontSize: '1.3rem' }}>🐷</span>
@@ -105,6 +123,22 @@ export default function ChildDashboard() {
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--success)' }}>
             CHF {savings.toFixed(2)}
           </div>
+          {(canTransferToSavings || canTransferFromSavings) && (
+            <div className="flex gap-2 mt-3">
+              {canTransferToSavings && (
+                <button className="btn-primary" style={{ flex: 1, fontSize: '0.82rem', padding: '8px 10px' }}
+                  onClick={() => { setTransferAmount(''); setTransferModal('to_savings'); }}>
+                  💰 → 🐷 Einzahlen
+                </button>
+              )}
+              {canTransferFromSavings && savings > 0 && (
+                <button className="btn-ghost" style={{ flex: 1, fontSize: '0.82rem', padding: '8px 10px' }}
+                  onClick={() => { setTransferAmount(''); setTransferModal('from_savings'); }}>
+                  🐷 → 💰 Abheben
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -224,6 +258,38 @@ export default function ChildDashboard() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Transfer modal */}
+      {transferModal && (
+        <Modal
+          open
+          title={transferModal === 'to_savings' ? '💰 → 🐷 In Sparbüchse einzahlen' : '🐷 → 💰 Aus Sparbüchse abheben'}
+          onClose={() => setTransferModal(null)}
+        >
+          <div className="text-center mb-4">
+            <div style={{ fontSize: '2.5rem' }}>{transferModal === 'to_savings' ? '🐷' : '💰'}</div>
+            <p className="text-muted mt-2" style={{ fontSize: '0.85rem' }}>
+              {transferModal === 'to_savings'
+                ? `Verfügbar: CHF ${balance.toFixed(2)}`
+                : `In Sparbüchse: CHF ${savings.toFixed(2)}`}
+            </p>
+          </div>
+          <input
+            type="number" step="0.05" min="0.05"
+            placeholder="Betrag in CHF"
+            value={transferAmount}
+            onChange={e => setTransferAmount(e.target.value)}
+            style={{ textAlign: 'center', fontSize: '1.2rem', fontWeight: 700 }}
+            autoFocus
+          />
+          <div className="flex gap-3 mt-4">
+            <button className="btn-ghost w-full" onClick={() => setTransferModal(null)}>Abbrechen</button>
+            <button className="btn-primary w-full" onClick={doTransfer}>
+              {transferModal === 'to_savings' ? 'Einzahlen' : 'Abheben'}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {/* Claim modal */}

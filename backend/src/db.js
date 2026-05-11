@@ -202,6 +202,8 @@ function migrate() {
   try { db.exec('ALTER TABLE notification_config ADD COLUMN signal_recipient TEXT'); } catch {}
   try { db.exec('ALTER TABLE notification_config ADD COLUMN threema_to_id TEXT'); } catch {}
   try { db.exec('ALTER TABLE users ADD COLUMN birthdate TEXT'); } catch {}
+  try { db.exec('ALTER TABLE allowance_config ADD COLUMN allow_self_transfer_to_savings INTEGER DEFAULT 0'); } catch {}
+  try { db.exec('ALTER TABLE allowance_config ADD COLUMN allow_self_transfer_from_savings INTEGER DEFAULT 0'); } catch {}
   try {
     db.exec(`CREATE TABLE IF NOT EXISTS reward_targets (
       reward_id INTEGER NOT NULL REFERENCES rewards(id) ON DELETE CASCADE,
