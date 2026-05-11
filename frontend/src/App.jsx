@@ -13,6 +13,7 @@ import RewardsPage from './pages/RewardsPage';
 import SettingsPage from './pages/SettingsPage';
 import BathPage from './pages/BathPage';
 import FinanceOverviewPage from './pages/FinanceOverviewPage';
+import MediaTimePage from './pages/MediaTimePage';
 import ParentNav from './components/ParentNav';
 import ChildNav from './components/ChildNav';
 
@@ -30,6 +31,7 @@ function AppRoutes() {
           <Route path="/points" element={<PointsPage childId={user.id} />} />
           <Route path="/flea" element={<FleaMarketPage childId={user.id} />} />
           <Route path="/bath" element={<BathPage />} />
+          <Route path="/media" element={<MediaTimePage />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
@@ -47,6 +49,7 @@ function AppRoutes() {
         <Route path="/flea/day/:id" element={<FleaDayPage />} />
         <Route path="/rewards" element={<RewardsPage />} />
         <Route path="/bath" element={<BathPage />} />
+        <Route path="/media" element={<MediaTimePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/finance" element={<FinanceOverviewPage />} />
         <Route path="*" element={<Navigate to="/" />} />

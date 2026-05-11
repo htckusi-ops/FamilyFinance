@@ -17,6 +17,10 @@ export default function ParentNav() {
         <span className="icon">⭐</span>
         <span>Punkte</span>
       </NavLink>
+      <NavLink to="/media">
+        <span className="icon">📺</span>
+        <span>Medienzeit</span>
+      </NavLink>
       <NavLink to="/flea">
         <span className="icon">🏷️</span>
         <span>Flohmarkt</span>

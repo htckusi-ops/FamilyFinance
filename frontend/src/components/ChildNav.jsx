@@ -17,6 +17,10 @@ export default function ChildNav() {
         <span className="icon">🏷️</span>
         <span>Flohmarkt</span>
       </NavLink>
+      <NavLink to="/media">
+        <span className="icon">📺</span>
+        <span>Medienzeit</span>
+      </NavLink>
       <NavLink to="/bath">
         <span className="icon">🛁</span>
         <span>Badespass</span>
