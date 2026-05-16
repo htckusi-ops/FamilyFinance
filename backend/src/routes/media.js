@@ -28,19 +28,31 @@ function weekStart() {
 function getUsage(uid) {
   const today = new Date().toISOString().slice(0, 10);
   const ws = weekStart();
-  const rows = db.prepare(`
+
+  const sessions = db.prepare(`
     SELECT ms.duration_minutes, ms.started_at FROM media_sessions ms
     JOIN media_session_users msu ON msu.session_id=ms.id
     WHERE msu.user_id=? AND ms.ended_at IS NOT NULL
   `).all(uid);
+
   let usedToday = 0, usedWeek = 0;
-  for (const r of rows) {
+  for (const r of sessions) {
     const d = r.started_at.slice(0, 10);
     const mins = r.duration_minutes || 0;
     if (d === today) usedToday += mins;
     if (d >= ws) usedWeek += mins;
   }
-  return { usedToday, usedWeek };
+
+  // Manual corrections (positive = add time, negative = reduce)
+  const corrections = db.prepare(
+    'SELECT date, delta_minutes FROM media_manual_corrections WHERE user_id=?'
+  ).all(uid);
+  for (const c of corrections) {
+    if (c.date === today) usedToday += c.delta_minutes;
+    if (c.date >= ws) usedWeek += c.delta_minutes;
+  }
+
+  return { usedToday: Math.max(0, usedToday), usedWeek: Math.max(0, usedWeek) };
 }
 
 function normalizeSession(s) {
@@ -221,6 +233,21 @@ router.get('/sessions', (req, res) => {
 // DELETE /media/sessions/:id (parent only)
 router.delete('/sessions/:id', parentOnly, (req, res) => {
   db.prepare('DELETE FROM media_sessions WHERE id=?').run(Number(req.params.id));
+  res.json({ ok: true });
+});
+
+// POST /media/corrections/:id (parent only) — manual time correction for a child
+// Body: { date: 'YYYY-MM-DD', delta_minutes: number, note?: string }
+// date = which day the correction applies to (for today's usage vs. earlier in the week)
+router.post('/corrections/:id', parentOnly, (req, res) => {
+  const uid = Number(req.params.id);
+  const { date, delta_minutes, note } = req.body;
+  if (!date || delta_minutes === undefined || delta_minutes === null) {
+    return res.status(400).json({ error: 'date und delta_minutes erforderlich' });
+  }
+  db.prepare(
+    'INSERT INTO media_manual_corrections (user_id, date, delta_minutes, note) VALUES (?,?,?,?)'
+  ).run(uid, date, Math.round(Number(delta_minutes) * 10) / 10, note || null);
   res.json({ ok: true });
 });
 

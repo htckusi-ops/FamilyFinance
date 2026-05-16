@@ -183,6 +183,8 @@ export default function MediaTimePage() {
   const [startLimitMinutes, setStartLimitMinutes] = useState('');
   const [configUser, setConfigUser] = useState(null);
   const [configForm, setConfigForm] = useState({});
+  const [correctionUser, setCorrectionUser] = useState(null);
+  const [correctionForm, setCorrectionForm] = useState({ todayVal: '', weekVal: '', note: '' });
   const warnedRef  = useRef(new Set());
   const alarmedRef = useRef(new Set());
 
@@ -263,6 +265,71 @@ export default function MediaTimePage() {
     toast('Limits gespeichert ✓', 'success');
     setConfigUser(null);
     load();
+  }
+
+  function openCorrection(child) {
+    const used = usageMap[child.id] || child;
+    const elapsed = activeSessions.find(s => s.user_ids?.includes(child.id))
+      ? (Date.now() - new Date(activeSessions.find(s => s.user_ids?.includes(child.id)).started_at).getTime()) / 60000
+      : 0;
+    setCorrectionForm({
+      todayVal: String(Math.round((used.usedToday + elapsed) * 10) / 10),
+      weekVal:  String(Math.round((used.usedWeek  + elapsed) * 10) / 10),
+      note: '',
+    });
+    setCorrectionUser(child);
+  }
+
+  async function saveCorrection() {
+    const used = usageMap[correctionUser.id] || correctionUser;
+    const elapsed = activeSessions.find(s => s.user_ids?.includes(correctionUser.id))
+      ? (Date.now() - new Date(activeSessions.find(s => s.user_ids?.includes(correctionUser.id)).started_at).getTime()) / 60000
+      : 0;
+
+    const today = new Date().toISOString().slice(0, 10);
+    const ws = (() => {
+      const d = new Date();
+      d.setUTCHours(0, 0, 0, 0);
+      d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+      return d.toISOString().slice(0, 10);
+    })();
+
+    const currentToday = Math.round((used.usedToday + elapsed) * 10) / 10;
+    const currentWeek  = Math.round((used.usedWeek  + elapsed) * 10) / 10;
+    const newToday = Number(correctionForm.todayVal);
+    const newWeek  = Number(correctionForm.weekVal);
+
+    const reqs = [];
+    const deltaToday = Math.round((newToday - currentToday) * 10) / 10;
+    const deltaWeekOnly = Math.round((newWeek - currentWeek - (newToday - currentToday)) * 10) / 10;
+
+    if (deltaToday !== 0) {
+      reqs.push(api.post(`/media/corrections/${correctionUser.id}`, {
+        date: today, delta_minutes: deltaToday, note: correctionForm.note || null,
+      }));
+    }
+    // Apply the remaining week delta on Monday (first day of week) so it counts in weekly total but not today
+    if (deltaWeekOnly !== 0 && ws !== today) {
+      reqs.push(api.post(`/media/corrections/${correctionUser.id}`, {
+        date: ws, delta_minutes: deltaWeekOnly, note: correctionForm.note || null,
+      }));
+    } else if (deltaWeekOnly !== 0) {
+      // Edge case: today IS Monday — put rest on yesterday (still in this week)
+      const yesterday = new Date();
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+      reqs.push(api.post(`/media/corrections/${correctionUser.id}`, {
+        date: yesterday.toISOString().slice(0, 10), delta_minutes: deltaWeekOnly, note: correctionForm.note || null,
+      }));
+    }
+
+    try {
+      await Promise.all(reqs);
+      toast('Korrektur gespeichert ✓', 'success');
+      setCorrectionUser(null);
+      load();
+    } catch (err) {
+      toast(err.response?.data?.error || 'Fehler', 'error');
+    }
   }
 
   function openConfig(child) {
@@ -466,6 +533,13 @@ export default function MediaTimePage() {
                       )}
                     </div>
                   </div>
+                  <button
+                    onClick={() => openCorrection(child)}
+                    title="Nutzungszeit manuell korrigieren"
+                    style={{ background:'#fef9c3', color:'#854d0e', border:'none', borderRadius:8, padding:'5px 10px', fontWeight:700, cursor:'pointer', fontSize:'0.8rem', flexShrink:0 }}
+                  >
+                    ✏️
+                  </button>
                 </div>
                 <MiniBar label="Heute"  used={usedToday} total={dailyLimit}  color={overToday ? '#ef4444' : child.color} />
                 <MiniBar label="Woche"  used={usedWeek}  total={weeklyLimit} color={overWeek  ? '#ef4444' : child.color} />
@@ -603,6 +677,86 @@ export default function MediaTimePage() {
             <button className="btn-primary w-full" onClick={startSession}>▶️ Starten</button>
           </div>
         </div>
+      </Modal>
+
+      {/* ── Correction modal ── */}
+      <Modal open={!!correctionUser} title={`⏱ Zeitkorrektur: ${correctionUser?.name}`} onClose={() => setCorrectionUser(null)}>
+        {correctionUser && (() => {
+          const used = usageMap[correctionUser.id] || correctionUser;
+          const dl = used.config?.daily_limit_minutes ?? 60;
+          const wl = used.config?.weekly_limit_minutes ?? 300;
+          return (
+            <div className="flex flex-col gap-4">
+              <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
+                Gib die tatsächliche Nutzungszeit ein. Die Differenz zur aktuellen Zeit wird als Korrektur gespeichert.
+              </p>
+
+              <div style={{ background: '#f8faff', borderRadius: 10, padding: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 8 }}>📅 Heute</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Tatsächliche Nutzung (Min)</label>
+                    <input
+                      type="number" min="0" max={dl * 3} step="1"
+                      value={correctionForm.todayVal}
+                      onChange={e => setCorrectionForm(f => ({ ...f, todayVal: e.target.value }))}
+                    />
+                  </div>
+                  <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#64748b', paddingTop: 18 }}>
+                    Limit: {dl} Min
+                  </div>
+                </div>
+                {correctionForm.todayVal !== '' && Math.round((Number(correctionForm.todayVal) - Number(correctionForm.todayVal === '' ? used.usedToday : correctionForm.todayVal)) * 10) / 10 !== 0 && (() => {
+                  const delta = Math.round((Number(correctionForm.todayVal) - used.usedToday) * 10) / 10;
+                  return delta !== 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: delta > 0 ? '#ef4444' : '#22c55e', marginTop: 4, fontWeight: 600 }}>
+                      {delta > 0 ? `+${delta}` : delta} Min gegenüber aktuell ({Math.round(used.usedToday * 10) / 10} Min)
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+
+              <div style={{ background: '#f8faff', borderRadius: 10, padding: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 8 }}>📆 Diese Woche gesamt</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Tatsächliche Nutzung (Min)</label>
+                    <input
+                      type="number" min="0" max={wl * 3} step="1"
+                      value={correctionForm.weekVal}
+                      onChange={e => setCorrectionForm(f => ({ ...f, weekVal: e.target.value }))}
+                    />
+                  </div>
+                  <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#64748b', paddingTop: 18 }}>
+                    Limit: {wl} Min
+                  </div>
+                </div>
+                {correctionForm.weekVal !== '' && (() => {
+                  const delta = Math.round((Number(correctionForm.weekVal) - used.usedWeek) * 10) / 10;
+                  return delta !== 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: delta > 0 ? '#ef4444' : '#22c55e', marginTop: 4, fontWeight: 600 }}>
+                      {delta > 0 ? `+${delta}` : delta} Min gegenüber aktuell ({Math.round(used.usedWeek * 10) / 10} Min)
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Bemerkung (optional)</label>
+                <input
+                  placeholder="z.B. Timer vergessen zu stoppen"
+                  value={correctionForm.note}
+                  onChange={e => setCorrectionForm(f => ({ ...f, note: e.target.value }))}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn-ghost w-full" onClick={() => setCorrectionUser(null)}>Abbrechen</button>
+                <button className="btn-primary w-full" onClick={saveCorrection}>Speichern ✓</button>
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* ── Config edit modal ── */}

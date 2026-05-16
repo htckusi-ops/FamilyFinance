@@ -235,6 +235,16 @@ function migrate() {
   } catch {}
   try { db.exec('ALTER TABLE media_sessions ADD COLUMN session_limit_minutes REAL'); } catch {}
   try {
+    db.exec(`CREATE TABLE IF NOT EXISTS media_manual_corrections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date TEXT NOT NULL,
+      delta_minutes REAL NOT NULL,
+      note TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    )`);
+  } catch {}
+  try {
     db.exec(`CREATE TABLE IF NOT EXISTS reward_targets (
       reward_id INTEGER NOT NULL REFERENCES rewards(id) ON DELETE CASCADE,
       user_id   INTEGER NOT NULL REFERENCES users(id)  ON DELETE CASCADE,
