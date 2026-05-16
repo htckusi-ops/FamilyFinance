@@ -184,7 +184,9 @@ export default function MediaTimePage() {
   const [configUser, setConfigUser] = useState(null);
   const [configForm, setConfigForm] = useState({});
   const [correctionUser, setCorrectionUser] = useState(null);
-  const [correctionForm, setCorrectionForm] = useState({ todayVal: '', weekVal: '', note: '' });
+  const [correctionForm, setCorrectionForm] = useState({ todayRemaining: '', weekRemaining: '', note: '' });
+  const [resetHour, setResetHour] = useState('0');
+  const [weekStartDay, setWeekStartDay] = useState('1');
   const [sessionsByChild, setSessionsByChild] = useState({});   // { childId: [sessions] }
   const [expandedChild, setExpandedChild] = useState(null);    // childId with sessions visible
   const [editSession, setEditSession] = useState(null);        // session object being edited
@@ -208,15 +210,18 @@ export default function MediaTimePage() {
 
   async function load() {
     if (user.role === 'parent') {
-      const [usageRes, activeRes] = await Promise.all([
+      const [usageRes, activeRes, settingsRes] = await Promise.all([
         api.get('/media/usage-all'),
         api.get('/media/sessions/active'),
+        api.get('/settings'),
       ]);
       setChildren(usageRes.data);
       const map = {};
       usageRes.data.forEach(c => { map[c.id] = c; });
       setUsageMap(map);
       setActiveSessions(activeRes.data);
+      setResetHour(settingsRes.data.media_reset_hour ?? '0');
+      setWeekStartDay(settingsRes.data.media_week_start_day ?? '1');
     } else {
       const [usageRes, activeRes] = await Promise.all([
         api.get(`/media/usage/${user.id}`),
@@ -276,9 +281,11 @@ export default function MediaTimePage() {
     const elapsed = activeSessions.find(s => s.user_ids?.includes(child.id))
       ? (Date.now() - new Date(activeSessions.find(s => s.user_ids?.includes(child.id)).started_at).getTime()) / 60000
       : 0;
+    const dl = used.config?.daily_limit_minutes ?? 60;
+    const wl = used.config?.weekly_limit_minutes ?? 300;
     setCorrectionForm({
-      todayVal: String(Math.round((used.usedToday + elapsed) * 10) / 10),
-      weekVal:  String(Math.round((used.usedWeek  + elapsed) * 10) / 10),
+      todayRemaining: String(Math.round(Math.max(0, dl - (used.usedToday + elapsed)) * 10) / 10),
+      weekRemaining:  String(Math.round(Math.max(0, wl - (used.usedWeek  + elapsed)) * 10) / 10),
       note: '',
     });
     setCorrectionUser(child);
@@ -289,6 +296,8 @@ export default function MediaTimePage() {
     const elapsed = activeSessions.find(s => s.user_ids?.includes(correctionUser.id))
       ? (Date.now() - new Date(activeSessions.find(s => s.user_ids?.includes(correctionUser.id)).started_at).getTime()) / 60000
       : 0;
+    const dl = used.config?.daily_limit_minutes ?? 60;
+    const wl = used.config?.weekly_limit_minutes ?? 300;
 
     const today = new Date().toISOString().slice(0, 10);
     const ws = (() => {
@@ -300,8 +309,9 @@ export default function MediaTimePage() {
 
     const currentToday = Math.round((used.usedToday + elapsed) * 10) / 10;
     const currentWeek  = Math.round((used.usedWeek  + elapsed) * 10) / 10;
-    const newToday = Number(correctionForm.todayVal);
-    const newWeek  = Number(correctionForm.weekVal);
+    // Convert remaining → used
+    const newToday = Math.round((dl - Number(correctionForm.todayRemaining)) * 10) / 10;
+    const newWeek  = Math.round((wl - Number(correctionForm.weekRemaining))  * 10) / 10;
 
     const reqs = [];
     const deltaToday = Math.round((newToday - currentToday) * 10) / 10;
@@ -370,6 +380,13 @@ export default function MediaTimePage() {
       active_half_count: child.config?.active_half_count ?? 0,
     });
     setConfigUser(child);
+  }
+
+  async function saveResetSetting(key, value) {
+    if (key === 'media_reset_hour') setResetHour(value);
+    else setWeekStartDay(value);
+    await api.patch('/settings', { [key]: value });
+    load();
   }
 
   function toggleStartSelected(id) {
@@ -643,6 +660,46 @@ export default function MediaTimePage() {
               </div>
             </div>
           ))}
+
+          {/* Reset settings */}
+          <div className="card" style={{ padding: 14 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 12 }}>🔄 Medienzeit Reset</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontWeight: 600, fontSize: '0.82rem', display: 'block', marginBottom: 4 }}>
+                  Täglicher Reset (Uhrzeit UTC)
+                </label>
+                <select
+                  value={resetHour}
+                  onChange={e => saveResetSetting('media_reset_hour', e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  {Array.from({ length: 24 }, (_, h) => (
+                    <option key={h} value={String(h)}>
+                      {String(h).padStart(2, '0')}:00{h === 6 ? ' (empfohlen)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>
+                  Medienzeit zählt bis zu dieser Uhrzeit als «gestern»
+                </div>
+              </div>
+              <div>
+                <label style={{ fontWeight: 600, fontSize: '0.82rem', display: 'block', marginBottom: 4 }}>
+                  Wochenstart
+                </label>
+                <select
+                  value={weekStartDay}
+                  onChange={e => saveResetSetting('media_week_start_day', e.target.value)}
+                  style={{ width: '100%' }}
+                >
+                  {[['1','Montag'],['2','Dienstag'],['3','Mittwoch'],['4','Donnerstag'],['5','Freitag'],['6','Samstag'],['0','Sonntag']].map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -779,32 +836,35 @@ export default function MediaTimePage() {
           const used = usageMap[correctionUser.id] || correctionUser;
           const dl = used.config?.daily_limit_minutes ?? 60;
           const wl = used.config?.weekly_limit_minutes ?? 300;
+          const curRemainingToday = Math.round(Math.max(0, dl - used.usedToday) * 10) / 10;
+          const curRemainingWeek  = Math.round(Math.max(0, wl - used.usedWeek)  * 10) / 10;
           return (
             <div className="flex flex-col gap-4">
               <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
-                Gib die tatsächliche Nutzungszeit ein. Die Differenz zur aktuellen Zeit wird als Korrektur gespeichert.
+                Gib ein, wie viel Zeit noch übrig bleiben soll. Die Differenz zur aktuellen Restzeit wird als Korrektur gespeichert.
               </p>
 
               <div style={{ background: '#f8faff', borderRadius: 10, padding: 12 }}>
                 <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 8 }}>📅 Heute</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Tatsächliche Nutzung (Min)</label>
+                    <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Verbleibende Zeit (Min)</label>
                     <input
-                      type="number" min="0" max={dl * 3} step="1"
-                      value={correctionForm.todayVal}
-                      onChange={e => setCorrectionForm(f => ({ ...f, todayVal: e.target.value }))}
+                      type="number" min="0" max={dl} step="1"
+                      value={correctionForm.todayRemaining}
+                      onChange={e => setCorrectionForm(f => ({ ...f, todayRemaining: e.target.value }))}
+                      autoFocus
                     />
                   </div>
                   <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#64748b', paddingTop: 18 }}>
-                    Limit: {dl} Min
+                    Aktuell: {curRemainingToday} Min
                   </div>
                 </div>
-                {correctionForm.todayVal !== '' && Math.round((Number(correctionForm.todayVal) - Number(correctionForm.todayVal === '' ? used.usedToday : correctionForm.todayVal)) * 10) / 10 !== 0 && (() => {
-                  const delta = Math.round((Number(correctionForm.todayVal) - used.usedToday) * 10) / 10;
+                {correctionForm.todayRemaining !== '' && (() => {
+                  const delta = Math.round((Number(correctionForm.todayRemaining) - curRemainingToday) * 10) / 10;
                   return delta !== 0 ? (
-                    <div style={{ fontSize: '0.75rem', color: delta > 0 ? '#ef4444' : '#22c55e', marginTop: 4, fontWeight: 600 }}>
-                      {delta > 0 ? `+${delta}` : delta} Min gegenüber aktuell ({Math.round(used.usedToday * 10) / 10} Min)
+                    <div style={{ fontSize: '0.75rem', color: delta > 0 ? '#22c55e' : '#ef4444', marginTop: 4, fontWeight: 600 }}>
+                      {delta > 0 ? `+${delta}` : delta} Min gegenüber aktuell ({curRemainingToday} Min)
                     </div>
                   ) : null;
                 })()}
@@ -814,22 +874,22 @@ export default function MediaTimePage() {
                 <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 8 }}>📆 Diese Woche gesamt</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Tatsächliche Nutzung (Min)</label>
+                    <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Verbleibende Zeit (Min)</label>
                     <input
-                      type="number" min="0" max={wl * 3} step="1"
-                      value={correctionForm.weekVal}
-                      onChange={e => setCorrectionForm(f => ({ ...f, weekVal: e.target.value }))}
+                      type="number" min="0" max={wl} step="1"
+                      value={correctionForm.weekRemaining}
+                      onChange={e => setCorrectionForm(f => ({ ...f, weekRemaining: e.target.value }))}
                     />
                   </div>
                   <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#64748b', paddingTop: 18 }}>
-                    Limit: {wl} Min
+                    Aktuell: {curRemainingWeek} Min
                   </div>
                 </div>
-                {correctionForm.weekVal !== '' && (() => {
-                  const delta = Math.round((Number(correctionForm.weekVal) - used.usedWeek) * 10) / 10;
+                {correctionForm.weekRemaining !== '' && (() => {
+                  const delta = Math.round((Number(correctionForm.weekRemaining) - curRemainingWeek) * 10) / 10;
                   return delta !== 0 ? (
-                    <div style={{ fontSize: '0.75rem', color: delta > 0 ? '#ef4444' : '#22c55e', marginTop: 4, fontWeight: 600 }}>
-                      {delta > 0 ? `+${delta}` : delta} Min gegenüber aktuell ({Math.round(used.usedWeek * 10) / 10} Min)
+                    <div style={{ fontSize: '0.75rem', color: delta > 0 ? '#22c55e' : '#ef4444', marginTop: 4, fontWeight: 600 }}>
+                      {delta > 0 ? `+${delta}` : delta} Min gegenüber aktuell ({curRemainingWeek} Min)
                     </div>
                   ) : null;
                 })()}
