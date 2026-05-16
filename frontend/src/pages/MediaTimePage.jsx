@@ -423,21 +423,42 @@ export default function MediaTimePage() {
             const elapsed = mySession ? (now - new Date(mySession.started_at).getTime()) / 60000 : 0;
             const usedToday = child.usedToday + elapsed;
             const usedWeek  = child.usedWeek  + elapsed;
+            const dailyLimit = child.config?.daily_limit_minutes ?? 60;
+            const weeklyLimit = child.config?.weekly_limit_minutes ?? 300;
+            const overToday = usedToday > dailyLimit;
+            const overWeek  = usedWeek  > weeklyLimit;
+            const overtimeMin = Math.round((usedToday - dailyLimit) * 10) / 10;
             return (
-              <div key={child.id} className="card" style={{ padding: 14 }}>
+              <div key={child.id} className="card" style={{
+                padding: 14,
+                border: overToday ? '2px solid #ef4444' : undefined,
+                background: overToday ? 'linear-gradient(135deg,#fff5f5,#fff)' : undefined,
+              }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
                   <Avatar user={child} size={38} />
                   <div style={{ flex:1 }}>
                     <div style={{ fontWeight:700 }}>{child.name}</div>
-                    {mySession && (
-                      <span style={{ fontSize:'0.7rem', background:'#dcfce7', color:'#166534', borderRadius:20, padding:'2px 8px', fontWeight:700 }}>
-                        ▶️ Aktiv
-                      </span>
-                    )}
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:2 }}>
+                      {mySession && (
+                        <span style={{ fontSize:'0.7rem', background:'#dcfce7', color:'#166534', borderRadius:20, padding:'2px 8px', fontWeight:700 }}>
+                          ▶️ Aktiv
+                        </span>
+                      )}
+                      {overToday && (
+                        <span style={{ fontSize:'0.7rem', background:'#ef4444', color:'#fff', borderRadius:20, padding:'2px 8px', fontWeight:800, letterSpacing:'0.03em' }}>
+                          ⚠️ +{fmtMin(overtimeMin)} Überzeit
+                        </span>
+                      )}
+                      {!overToday && (
+                        <span style={{ fontSize:'0.7rem', color:'#64748b' }}>
+                          noch {fmtMin(Math.max(0, dailyLimit - usedToday))} heute
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <MiniBar label="Heute" used={usedToday} total={child.config?.daily_limit_minutes} color={child.color} />
-                <MiniBar label="Woche" used={usedWeek}  total={child.config?.weekly_limit_minutes} color={child.color} />
+                <MiniBar label="Heute"  used={usedToday} total={dailyLimit}  color={overToday ? '#ef4444' : child.color} />
+                <MiniBar label="Woche"  used={usedWeek}  total={weeklyLimit} color={overWeek  ? '#ef4444' : child.color} />
               </div>
             );
           })}
