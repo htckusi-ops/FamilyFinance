@@ -4,67 +4,83 @@ export default function MediaTimer({ remainingSeconds, totalSeconds, warnSeconds
   const cy = size / 2;
   const C = 2 * Math.PI * R;
 
-  const clamped = Math.max(0, Math.round(remainingSeconds));
-  const fraction = totalSeconds > 0 ? clamped / totalSeconds : 0;
-  const offset = C * (1 - fraction);
+  const isOvertime = remainingSeconds < 0;
+  const overSeconds = isOvertime ? Math.round(Math.abs(remainingSeconds)) : 0;
+  const clamped    = isOvertime ? 0 : Math.max(0, Math.round(remainingSeconds));
 
-  const isExpired = clamped <= 0;
-  const isWarning = !isExpired && clamped <= warnSeconds;
-  const arcColor = isExpired ? '#ef4444' : isWarning ? '#f59e0b' : (userColor || '#22c55e');
+  const isExpired = !isOvertime && clamped === 0;
+  const isWarning = !isOvertime && !isExpired && warnSeconds > 0 && clamped <= warnSeconds;
 
-  const mm = String(Math.floor(clamped / 60)).padStart(2, '0');
-  const ss = String(clamped % 60).padStart(2, '0');
+  // Normal depleting arc
+  const normalOffset = C * (1 - (totalSeconds > 0 ? clamped / totalSeconds : 0));
+  // Overtime filling arc (grows from 0)
+  const overFraction = isOvertime && totalSeconds > 0 ? Math.min(1, overSeconds / totalSeconds) : 0;
+  const overOffset   = C * (1 - overFraction);
+
+  const arcColor  = isOvertime || isExpired ? '#ef4444' : isWarning ? '#f59e0b' : (userColor || '#22c55e');
+  const textColor = isOvertime || isExpired ? '#ef4444' : '#1a1a2e';
+
+  const displaySecs = isOvertime ? overSeconds : clamped;
+  const mm = String(Math.floor(displaySecs / 60)).padStart(2, '0');
+  const ss = String(displaySecs % 60).padStart(2, '0');
+  const timeText = isOvertime ? `+${mm}:${ss}` : `${mm}:${ss}`;
+
+  const statusLabel = isOvertime ? 'ÜBERZEIT' : isExpired ? 'FERTIG' : isWarning ? 'FAST FERTIG' : 'verbleibend';
+  const statusColor = isOvertime || isExpired ? '#ef4444' : isWarning ? '#f59e0b' : '#94a3b8';
+  const shouldBlink = isWarning || isExpired || isOvertime;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       <style>{`@keyframes ff-blink{0%,100%{opacity:1}50%{opacity:0.2}}`}</style>
       <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} style={{ display: 'block' }}>
-        {/* Shadow/glow ring */}
+        {/* Glow ring */}
         <circle cx={cx} cy={cy} r={R + 4} fill="none" stroke={arcColor} strokeWidth="2" opacity="0.15" />
-        {/* Background ring */}
-        <circle cx={cx} cy={cy} r={R} fill="none" stroke="#e0e7ef" strokeWidth="14" />
-        {/* Depleting arc */}
+        {/* Background track — red-tinted when overtime */}
+        <circle cx={cx} cy={cy} r={R} fill="none" stroke={isOvertime ? '#fee2e2' : '#e0e7ef'} strokeWidth="14" />
+        {/* Arc — depletes normally, fills red on overtime */}
         <circle
           cx={cx} cy={cy} r={R}
           fill="none"
-          stroke={arcColor}
+          stroke={isOvertime ? '#ef4444' : arcColor}
           strokeWidth="14"
           strokeLinecap="round"
           strokeDasharray={C}
-          strokeDashoffset={offset}
+          strokeDashoffset={isOvertime ? overOffset : normalOffset}
           transform={`rotate(-90 ${cx} ${cy})`}
           style={{ transition: 'stroke-dashoffset 0.95s linear, stroke 0.4s ease' }}
         />
-        {/* Center fill */}
+        {/* White inner disc */}
         <circle cx={cx} cy={cy} r={R - 8} fill="white" opacity="0.9" />
         {/* Time digits */}
         <text
           x={cx} y={cy + 2}
           textAnchor="middle"
           dominantBaseline="middle"
-          fontSize={size * 0.22}
+          fontSize={isOvertime ? size * 0.185 : size * 0.22}
           fontWeight="800"
-          fill={isExpired ? '#ef4444' : '#1a1a2e'}
+          fill={textColor}
           fontFamily="'Courier New', monospace"
-          style={(isWarning || isExpired) ? { animation: 'ff-blink 0.9s ease-in-out infinite' } : {}}
+          style={shouldBlink ? { animation: 'ff-blink 0.9s ease-in-out infinite' } : {}}
         >
-          {mm}:{ss}
+          {timeText}
         </text>
-        {/* Status label inside circle */}
-        <text
-          x={cx} y={cy + size * 0.22}
-          textAnchor="middle"
-          fontSize={size * 0.085}
-          fill={isExpired ? '#ef4444' : isWarning ? '#f59e0b' : '#94a3b8'}
-          fontWeight="600"
-        >
-          {isExpired ? 'FERTIG' : isWarning ? 'FAST FERTIG' : 'verbleibend'}
-        </text>
+        {/* Status label — hidden on very small clocks */}
+        {size >= 100 && (
+          <text
+            x={cx} y={cy + size * 0.22}
+            textAnchor="middle"
+            fontSize={size * 0.085}
+            fill={statusColor}
+            fontWeight="600"
+          >
+            {statusLabel}
+          </text>
+        )}
       </svg>
       {label && (
         <div style={{
           fontWeight: 800, fontSize: '0.95rem',
-          background: userColor || '#6366f1',
+          background: isOvertime ? '#ef4444' : (userColor || '#6366f1'),
           color: '#fff',
           borderRadius: 20,
           padding: '3px 14px',

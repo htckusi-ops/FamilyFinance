@@ -7,6 +7,7 @@ import ProgressBar from '../components/ProgressBar';
 import Modal from '../components/Modal';
 import Avatar from '../components/Avatar';
 import PointsTimeline from '../components/PointsTimeline';
+import MediaTimer from '../components/MediaTimer';
 
 function greeting() {
   const h = new Date().getHours();
@@ -151,61 +152,31 @@ export default function ChildDashboard() {
       {mediaUsage && (
         <div className="card mb-4" style={{ cursor: 'pointer' }} onClick={() => navigate('/media')}>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold">📺 Medienzeit heute</h2>
+            <h2 className="font-bold">📺 Medienzeit</h2>
             <span style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 700 }}>Details →</span>
           </div>
-          {/* Daily row */}
-          {(() => {
-            const used = mediaUsage.usedToday || 0;
-            const limit = mediaUsage.config?.daily_limit_minutes || 60;
-            const pct = Math.min(100, Math.round((used / limit) * 100));
-            const over = Math.max(0, used - limit);
-            const remaining = Math.max(0, limit - used);
-            const barColor = over > 0 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#6366f1';
-            return (
-              <div className="mb-3">
-                <div className="flex justify-between items-center mb-1">
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#64748b' }}>Heute</span>
-                  <div className="flex items-center gap-2">
-                    {over > 0
-                      ? <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#fee2e2', color: '#dc2626' }}>⚠️ +{Math.round(over)} Min Überzeit</span>
-                      : <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{Math.round(remaining)} Min übrig</span>
-                    }
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{Math.round(used)}/{limit} Min</span>
-                  </div>
-                </div>
-                <div style={{ height: 8, background: '#e0e7ef', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 4, transition: 'width 0.3s' }} />
-                </div>
-              </div>
-            );
-          })()}
-          {/* Weekly row */}
-          {(() => {
-            const used = mediaUsage.usedWeek || 0;
-            const limit = mediaUsage.config?.weekly_limit_minutes || 300;
-            const pct = Math.min(100, Math.round((used / limit) * 100));
-            const over = Math.max(0, used - limit);
-            const remaining = Math.max(0, limit - used);
-            const barColor = over > 0 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#818cf8';
-            return (
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#64748b' }}>Diese Woche</span>
-                  <div className="flex items-center gap-2">
-                    {over > 0
-                      ? <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#fee2e2', color: '#dc2626' }}>⚠️ +{Math.round(over)} Min Überzeit</span>
-                      : <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{Math.round(remaining)} Min übrig</span>
-                    }
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{Math.round(used)}/{limit} Min</span>
-                  </div>
-                </div>
-                <div style={{ height: 8, background: '#e0e7ef', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 4, transition: 'width 0.3s' }} />
-                </div>
-              </div>
-            );
-          })()}
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#64748b', marginBottom: 6 }}>📅 Heute</div>
+              <MediaTimer
+                remainingSeconds={(mediaUsage.config?.daily_limit_minutes - mediaUsage.usedToday) * 60}
+                totalSeconds={(mediaUsage.config?.daily_limit_minutes ?? 60) * 60}
+                warnSeconds={0}
+                size={90}
+                userColor={user.color}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#64748b', marginBottom: 6 }}>📆 Woche</div>
+              <MediaTimer
+                remainingSeconds={(mediaUsage.config?.weekly_limit_minutes - mediaUsage.usedWeek) * 60}
+                totalSeconds={(mediaUsage.config?.weekly_limit_minutes ?? 300) * 60}
+                warnSeconds={0}
+                size={90}
+                userColor={user.color}
+              />
+            </div>
+          </div>
         </div>
       )}
 

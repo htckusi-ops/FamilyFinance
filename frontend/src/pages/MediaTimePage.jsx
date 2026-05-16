@@ -56,8 +56,9 @@ function sessionElapsedSeconds(startedAt) {
 function timerForUser(usage, elapsedSeconds, sessionLimitMinutes) {
   const budgetSeconds = Math.min(usage.remainingToday, usage.remainingWeek) * 60;
   const sessionSeconds = sessionLimitMinutes ? sessionLimitMinutes * 60 : null;
-  const totalSeconds = sessionSeconds !== null ? Math.min(sessionSeconds, budgetSeconds) : budgetSeconds;
-  const remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds);
+  const allocated = sessionSeconds !== null ? Math.min(sessionSeconds, budgetSeconds) : budgetSeconds;
+  const totalSeconds = Math.max(allocated, 300); // arc scale — minimum 5 min so overtime arc is visible
+  const remainingSeconds = allocated - elapsedSeconds; // negative = overtime
   const warnSeconds = (usage.config?.warn_before_minutes ?? 2) * 60;
   return { totalSeconds, remainingSeconds, warnSeconds };
 }
@@ -341,23 +342,32 @@ export default function MediaTimePage() {
           </div>
         )}
 
-        {/* Budget overview */}
+        {/* Budget overview — two small clocks */}
         {myUsage && !mySession && (
           <div className="card mt-4">
-            <h2 className="font-bold mb-3">Mein Budget</h2>
-            {(() => {
-              const elapsed = mySession ? Math.floor((now - new Date(mySession.started_at).getTime()) / 60000) : 0;
-              return (
-                <>
-                  <MiniBar label="📅 Heute" used={myUsage.usedToday + elapsed} total={myUsage.config?.daily_limit_minutes} />
-                  <MiniBar label="📆 Diese Woche" used={myUsage.usedWeek + elapsed} total={myUsage.config?.weekly_limit_minutes} />
-                  <div style={{ marginTop: 8, fontSize: '0.8rem', color: '#64748b' }}>
-                    Noch verfügbar: <b>{fmtMin(myUsage.remainingToday)}</b> heute,
-                    {' '}<b>{fmtMin(myUsage.remainingWeek)}</b> diese Woche
-                  </div>
-                </>
-              );
-            })()}
+            <h2 className="font-bold mb-4">Mein Budget</h2>
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#64748b', marginBottom: 6 }}>📅 Heute</div>
+                <MediaTimer
+                  remainingSeconds={(myUsage.config?.daily_limit_minutes - myUsage.usedToday) * 60}
+                  totalSeconds={(myUsage.config?.daily_limit_minutes ?? 60) * 60}
+                  warnSeconds={0}
+                  size={120}
+                  userColor={user.color}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#64748b', marginBottom: 6 }}>📆 Woche</div>
+                <MediaTimer
+                  remainingSeconds={(myUsage.config?.weekly_limit_minutes - myUsage.usedWeek) * 60}
+                  totalSeconds={(myUsage.config?.weekly_limit_minutes ?? 300) * 60}
+                  warnSeconds={0}
+                  size={120}
+                  userColor={user.color}
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>
