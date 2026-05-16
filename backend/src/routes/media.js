@@ -18,16 +18,72 @@ function ensureConfig(uid) {
     .run(uid, d.daily, d.weekly);
 }
 
-function weekStart() {
+// ── Configurable reset helpers ────────────────────────────────────────────────
+
+function getMediaSettings() {
+  const rows = db.prepare(
+    "SELECT key, value FROM family_settings WHERE key IN ('media_reset_hour','media_week_start_day')"
+  ).all();
+  const m = {};
+  rows.forEach(r => { m[r.key] = r.value; });
+  return {
+    resetHour:    parseInt(m.media_reset_hour    || '0', 10),
+    weekStartDay: parseInt(m.media_week_start_day || '1', 10),
+  };
+}
+
+// "Today" shifts back when current hour is before the configured reset hour
+function getMediaToday(settings) {
+  const { resetHour } = settings;
+  const now = new Date();
   const d = new Date();
-  d.setUTCHours(0,0,0,0);
-  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); // Monday
+  d.setUTCHours(0, 0, 0, 0);
+  if (now.getUTCHours() < resetHour) d.setUTCDate(d.getUTCDate() - 1);
   return d.toISOString().slice(0, 10);
 }
 
+function getMediaWeekStart(settings) {
+  const { resetHour, weekStartDay } = settings;
+  const now = new Date();
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  if (now.getUTCHours() < resetHour) d.setUTCDate(d.getUTCDate() - 1);
+  const daysBack = (d.getUTCDay() - weekStartDay + 7) % 7;
+  d.setUTCDate(d.getUTCDate() - daysBack);
+  return d.toISOString().slice(0, 10);
+}
+
+function getResetInfo(settings) {
+  const { resetHour, weekStartDay } = settings;
+  const now = new Date();
+
+  // Next daily reset
+  const nextDaily = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), resetHour, 0, 0, 0));
+  if (nextDaily <= now) nextDaily.setUTCDate(nextDaily.getUTCDate() + 1);
+
+  // Next weekly reset (first upcoming weekStartDay at resetHour)
+  const nextWeekly = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), resetHour, 0, 0, 0));
+  const currDay = nextWeekly.getUTCDay();
+  let daysForward = (weekStartDay - currDay + 7) % 7;
+  if (daysForward === 0 && nextWeekly <= now) daysForward = 7;
+  nextWeekly.setUTCDate(nextWeekly.getUTCDate() + daysForward);
+
+  return {
+    resetHour,
+    weekStartDay,
+    hoursUntilDailyReset:  Math.round((nextDaily  - now) / 3600000 * 10) / 10,
+    daysUntilWeeklyReset:  Math.round((nextWeekly - now) / 86400000 * 10) / 10,
+    nextDailyReset:  nextDaily.toISOString(),
+    nextWeeklyReset: nextWeekly.toISOString(),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getUsage(uid) {
-  const today = new Date().toISOString().slice(0, 10);
-  const ws = weekStart();
+  const settings = getMediaSettings();
+  const today = getMediaToday(settings);
+  const ws    = getMediaWeekStart(settings);
 
   const sessions = db.prepare(`
     SELECT ms.duration_minutes, ms.started_at FROM media_sessions ms
@@ -49,7 +105,7 @@ function getUsage(uid) {
   ).all(uid);
   for (const c of corrections) {
     if (c.date === today) usedToday += c.delta_minutes;
-    if (c.date >= ws) usedWeek += c.delta_minutes;
+    if (c.date >= ws)     usedWeek  += c.delta_minutes;
   }
 
   return { usedToday: Math.max(0, usedToday), usedWeek: Math.max(0, usedWeek) };
@@ -104,12 +160,14 @@ router.get('/usage/:id', (req, res) => {
   ensureConfig(uid);
   const config = db.prepare('SELECT * FROM media_config WHERE user_id=?').get(uid);
   const { usedToday, usedWeek } = getUsage(uid);
+  const settings = getMediaSettings();
   res.json({
     config,
     usedToday: Math.round(usedToday * 10) / 10,
-    usedWeek: Math.round(usedWeek * 10) / 10,
+    usedWeek:  Math.round(usedWeek  * 10) / 10,
     remainingToday: Math.max(0, config.daily_limit_minutes - usedToday),
-    remainingWeek: Math.max(0, config.weekly_limit_minutes - usedWeek),
+    remainingWeek:  Math.max(0, config.weekly_limit_minutes - usedWeek),
+    resetInfo: getResetInfo(settings),
   });
 });
 
@@ -210,16 +268,28 @@ router.post('/sessions/:id/stop', (req, res) => {
   res.json({ ok: true, duration_minutes: durationMinutes });
 });
 
-// GET /media/sessions — recent completed sessions
+// GET /media/sessions — recent completed sessions (optionally filtered by ?userId=)
 router.get('/sessions', (req, res) => {
-  const rows = req.user.role === 'parent'
-    ? db.prepare(`
-        SELECT ms.*, GROUP_CONCAT(msu.user_id) as user_ids
-        FROM media_sessions ms JOIN media_session_users msu ON msu.session_id=ms.id
-        WHERE ms.ended_at IS NOT NULL
-        GROUP BY ms.id ORDER BY ms.started_at DESC LIMIT 50
-      `).all()
-    : db.prepare(`
+  const filterUid = req.query.userId ? Number(req.query.userId) : null;
+  let rows;
+  if (req.user.role === 'parent') {
+    rows = filterUid
+      ? db.prepare(`
+          SELECT ms.*, GROUP_CONCAT(msu.user_id) as user_ids
+          FROM media_sessions ms JOIN media_session_users msu ON msu.session_id=ms.id
+          WHERE ms.ended_at IS NOT NULL AND ms.id IN (
+            SELECT session_id FROM media_session_users WHERE user_id=?
+          )
+          GROUP BY ms.id ORDER BY ms.started_at DESC LIMIT 30
+        `).all(filterUid)
+      : db.prepare(`
+          SELECT ms.*, GROUP_CONCAT(msu.user_id) as user_ids
+          FROM media_sessions ms JOIN media_session_users msu ON msu.session_id=ms.id
+          WHERE ms.ended_at IS NOT NULL
+          GROUP BY ms.id ORDER BY ms.started_at DESC LIMIT 50
+        `).all();
+  } else {
+    rows = db.prepare(`
         SELECT ms.*, GROUP_CONCAT(msu.user_id) as user_ids
         FROM media_sessions ms JOIN media_session_users msu ON msu.session_id=ms.id
         WHERE ms.ended_at IS NOT NULL AND ms.id IN (
@@ -227,7 +297,22 @@ router.get('/sessions', (req, res) => {
         )
         GROUP BY ms.id ORDER BY ms.started_at DESC LIMIT 20
       `).all(req.user.id);
+  }
   res.json(rows.map(normalizeSession));
+});
+
+// PATCH /media/sessions/:id (parent only) — edit duration and/or notes
+router.patch('/sessions/:id', parentOnly, (req, res) => {
+  const sid = Number(req.params.id);
+  const { duration_minutes, notes } = req.body;
+  if (duration_minutes !== undefined) {
+    const mins = Math.max(0, Math.round(Number(duration_minutes) * 10) / 10);
+    db.prepare('UPDATE media_sessions SET duration_minutes=? WHERE id=?').run(mins, sid);
+  }
+  if (notes !== undefined) {
+    db.prepare('UPDATE media_sessions SET notes=? WHERE id=?').run(notes || null, sid);
+  }
+  res.json({ ok: true });
 });
 
 // DELETE /media/sessions/:id (parent only)

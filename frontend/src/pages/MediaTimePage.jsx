@@ -185,6 +185,10 @@ export default function MediaTimePage() {
   const [configForm, setConfigForm] = useState({});
   const [correctionUser, setCorrectionUser] = useState(null);
   const [correctionForm, setCorrectionForm] = useState({ todayVal: '', weekVal: '', note: '' });
+  const [sessionsByChild, setSessionsByChild] = useState({});   // { childId: [sessions] }
+  const [expandedChild, setExpandedChild] = useState(null);    // childId with sessions visible
+  const [editSession, setEditSession] = useState(null);        // session object being edited
+  const [editDuration, setEditDuration] = useState('');
   const warnedRef  = useRef(new Set());
   const alarmedRef = useRef(new Set());
 
@@ -330,6 +334,32 @@ export default function MediaTimePage() {
     } catch (err) {
       toast(err.response?.data?.error || 'Fehler', 'error');
     }
+  }
+
+  async function toggleChildSessions(child) {
+    if (expandedChild === child.id) { setExpandedChild(null); return; }
+    setExpandedChild(child.id);
+    if (!sessionsByChild[child.id]) {
+      const res = await api.get(`/media/sessions?userId=${child.id}`);
+      setSessionsByChild(s => ({ ...s, [child.id]: res.data }));
+    }
+  }
+
+  async function deleteSession(sid, childId) {
+    await api.delete(`/media/sessions/${sid}`);
+    setSessionsByChild(s => ({ ...s, [childId]: (s[childId] || []).filter(x => x.id !== sid) }));
+    load();
+  }
+
+  async function saveEditSession() {
+    const mins = Math.max(0, Number(editDuration));
+    await api.patch(`/media/sessions/${editSession.id}`, { duration_minutes: mins });
+    setSessionsByChild(s => ({
+      ...s,
+      [expandedChild]: (s[expandedChild] || []).map(x => x.id === editSession.id ? { ...x, duration_minutes: mins } : x),
+    }));
+    setEditSession(null);
+    load();
   }
 
   function openConfig(child) {
@@ -543,6 +573,41 @@ export default function MediaTimePage() {
                 </div>
                 <MiniBar label="Heute"  used={usedToday} total={dailyLimit}  color={overToday ? '#ef4444' : child.color} />
                 <MiniBar label="Woche"  used={usedWeek}  total={weeklyLimit} color={overWeek  ? '#ef4444' : child.color} />
+
+                {/* Session history toggle */}
+                <button
+                  onClick={() => toggleChildSessions(child)}
+                  style={{ marginTop: 8, background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#6366f1', fontWeight: 700, padding: 0, textAlign: 'left' }}
+                >
+                  {expandedChild === child.id ? '▲ Verlauf ausblenden' : '▼ Verlauf anzeigen'}
+                </button>
+
+                {/* Session list */}
+                {expandedChild === child.id && (
+                  <div style={{ marginTop: 6, borderTop: '1px solid #e0e7ef', paddingTop: 8 }}>
+                    {(sessionsByChild[child.id] || []).length === 0 && (
+                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Keine Sitzungen gefunden</div>
+                    )}
+                    {(sessionsByChild[child.id] || []).map(s => (
+                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: '0.75rem' }}>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontWeight: 600 }}>{new Date(s.started_at).toLocaleDateString('de-CH')}</span>
+                          {' · '}
+                          <span style={{ color: '#64748b' }}>{s.category === 'active' ? '📚' : '📺'} {fmtMin(s.duration_minutes || 0)}</span>
+                          {s.notes && <span style={{ color: '#94a3b8' }}> · {s.notes}</span>}
+                        </div>
+                        <button
+                          onClick={() => { setEditSession(s); setEditDuration(String(Math.round((s.duration_minutes || 0) * 10) / 10)); }}
+                          style={{ background: '#f0f9ff', color: '#0369a1', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
+                        >✏️</button>
+                        <button
+                          onClick={() => deleteSession(s.id, child.id)}
+                          style={{ background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
+                        >🗑</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -677,6 +742,35 @@ export default function MediaTimePage() {
             <button className="btn-primary w-full" onClick={startSession}>▶️ Starten</button>
           </div>
         </div>
+      </Modal>
+
+      {/* ── Edit session modal ── */}
+      <Modal open={!!editSession} title="Sitzung bearbeiten" onClose={() => setEditSession(null)}>
+        {editSession && (
+          <div className="flex flex-col gap-4">
+            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+              {new Date(editSession.started_at).toLocaleString('de-CH')} · {editSession.category === 'active' ? '📚 Aktiv' : '📺 Passiv'}
+            </div>
+            <div>
+              <label style={{ fontWeight: 700, fontSize: '0.85rem', display: 'block', marginBottom: 4 }}>
+                Dauer (Minuten)
+              </label>
+              <input
+                type="number" min="0" step="0.5"
+                value={editDuration}
+                onChange={e => setEditDuration(e.target.value)}
+                autoFocus
+              />
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 4 }}>
+                Ursprünglich: {Math.round((editSession.duration_minutes || 0) * 10) / 10} Min
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn-ghost w-full" onClick={() => setEditSession(null)}>Abbrechen</button>
+              <button className="btn-primary w-full" onClick={saveEditSession}>Speichern ✓</button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* ── Correction modal ── */}

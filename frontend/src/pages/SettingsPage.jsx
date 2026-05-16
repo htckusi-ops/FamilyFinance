@@ -334,6 +334,49 @@ export default function SettingsPage() {
         )}
       </div>
 
+      {/* Media time reset settings */}
+      <div className="card mb-4">
+        <h2 className="font-bold mb-3">📺 Medienzeit – Reset</h2>
+        <div className="flex flex-col gap-3">
+          <div>
+            <div className="font-semibold text-sm mb-1">Tagesreset – Uhrzeit</div>
+            <div className="text-muted mb-2" style={{ fontSize: '0.78rem' }}>
+              Ab welcher Uhrzeit (UTC) beginnt ein neuer Medientag? Standard: 00:00
+            </div>
+            <select
+              value={famSettings.media_reset_hour || '0'}
+              onChange={e => saveFamSetting('media_reset_hour', e.target.value)}
+              style={{ fontSize: '0.88rem' }}
+            >
+              {Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={String(h)}>
+                  {String(h).padStart(2, '0')}:00 Uhr{h === 0 ? ' (Standard)' : h === 6 ? ' – empfohlen für Familien' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <div className="font-semibold text-sm mb-1">Wochenreset – Starttag</div>
+            <div className="text-muted mb-2" style={{ fontSize: '0.78rem' }}>
+              Welcher Tag startet eine neue Medienwoche?
+            </div>
+            <select
+              value={famSettings.media_week_start_day || '1'}
+              onChange={e => saveFamSetting('media_week_start_day', e.target.value)}
+              style={{ fontSize: '0.88rem' }}
+            >
+              <option value="1">Montag (Standard)</option>
+              <option value="0">Sonntag</option>
+              <option value="2">Dienstag</option>
+              <option value="3">Mittwoch</option>
+              <option value="4">Donnerstag</option>
+              <option value="5">Freitag</option>
+              <option value="6">Samstag</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Home Assistant Integration */}
       <div className="card mb-4">
         <h2 className="font-bold mb-3">🏠 Home Assistant Integration</h2>

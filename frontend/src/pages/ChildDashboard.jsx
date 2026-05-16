@@ -165,6 +165,13 @@ export default function ChildDashboard() {
                 size={90}
                 userColor={user.color}
               />
+              {mediaUsage.resetInfo && (
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: 4, textAlign: 'center' }}>
+                  {mediaUsage.resetInfo.hoursUntilDailyReset < 1
+                    ? `Reset in ${Math.round(mediaUsage.resetInfo.hoursUntilDailyReset * 60)} Min`
+                    : `Reset in ${Math.round(mediaUsage.resetInfo.hoursUntilDailyReset)} Std`}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: '0.78rem', color: '#64748b', marginBottom: 6 }}>📆 Woche</div>
@@ -175,6 +182,13 @@ export default function ChildDashboard() {
                 size={90}
                 userColor={user.color}
               />
+              {mediaUsage.resetInfo && (
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: 4, textAlign: 'center' }}>
+                  {mediaUsage.resetInfo.daysUntilWeeklyReset < 1
+                    ? 'Reset heute'
+                    : `Reset in ${Math.ceil(mediaUsage.resetInfo.daysUntilWeeklyReset)} ${Math.ceil(mediaUsage.resetInfo.daysUntilWeeklyReset) === 1 ? 'Tag' : 'Tagen'}`}
+                </div>
+              )}
             </div>
           </div>
         </div>
