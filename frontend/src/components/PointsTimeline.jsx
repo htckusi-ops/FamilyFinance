@@ -11,122 +11,150 @@ function nextBirthday(birthdate) {
   return { date: next, days, age };
 }
 
-export default function PointsTimeline({ points = 0, rewards = [], birthdate = null }) {
-  const sorted = [...rewards].sort((a, b) => a.points_required - b.points_required);
-  const bday = nextBirthday(birthdate);
-  if (sorted.length === 0 && !bday) return null;
+const FILL = 'linear-gradient(to right, #6366f1, #818cf8)';
+const FILL_V = 'linear-gradient(to bottom, #6366f1, #818cf8)';
+const GREEN = '#22c55e';
+const BLUE = '#6366f1';
+const GREY = '#e0e7ef';
 
-  // Build ordered list: milestones interspersed with the current-position marker
-  const achieved = sorted.filter(r => points >= r.points_required);
-  const upcoming = sorted.filter(r => points < r.points_required);
-  const next = upcoming[0] ?? null;
+function Dot({ color, size = 22, shadow }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: color, border: '3px solid #fff',
+      flexShrink: 0, zIndex: 2,
+      boxShadow: shadow ? `0 0 0 4px ${color}33, 0 2px 8px #0003` : '0 1px 4px #0002',
+    }} />
+  );
+}
 
-  // Track colour for the filled portion
-  const FILL = 'linear-gradient(to bottom, #6366f1, #818cf8)';
-  const GREY = '#e0e7ef';
-  const GREEN = '#22c55e';
-  const BLUE = '#6366f1';
-
-  function Dot({ color, size = 20, border = '#fff', shadow }) {
-    return (
-      <div style={{
-        width: size, height: size, borderRadius: '50%',
-        background: color, border: `3px solid ${border}`,
-        flexShrink: 0, zIndex: 2,
-        boxShadow: shadow ? `0 0 0 4px ${color}33, 0 2px 8px #0003` : '0 1px 4px #0002',
-      }} />
-    );
-  }
-
-  function TrackLine({ filled, flex = 1 }) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex, minHeight: 24 }}>
+function Connector({ filled, minHeight = 16 }) {
+  return (
+    <div style={{ display: 'flex', gap: 12 }}>
+      <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
         <div style={{
-          width: 4, flex: 1, borderRadius: 4,
-          background: filled ? FILL : GREY,
-          minHeight: 24,
+          width: 4, minHeight, borderRadius: 4, flex: 1,
+          background: filled ? FILL_V : GREY,
         }} />
       </div>
-    );
-  }
+      <div style={{ flex: 1 }} />
+    </div>
+  );
+}
 
-  function MilestoneRow({ r, state }) {
-    // state: 'achieved' | 'next' | 'future'
-    const reached = state === 'achieved';
-    const isNext = state === 'next';
-    const dotColor = reached ? GREEN : isNext ? BLUE : GREY;
-    const remaining = r.points_required - points;
-    const progressPct = isNext ? Math.min(100, Math.round((points / r.points_required) * 100)) : 0;
+// Single reward card — used inside a tier
+function RewardCard({ r, state, points, compact = false }) {
+  const reached = state === 'achieved';
+  const isNext  = state === 'next';
 
-    return (
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        {/* Dot */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
-          <Dot color={dotColor} size={22} shadow={isNext} />
+  const progressPct = reached ? 100 : Math.min(99, Math.round((points / r.points_required) * 100));
+  const remaining   = Math.max(0, r.points_required - points);
+
+  const bg      = reached ? '#f0fff4' : isNext ? '#eef2ff' : '#f8faff';
+  const border  = reached ? '#86efac' : isNext ? '#a5b4fc' : '#e0e7ef';
+  const tagBg   = reached ? '#dcfce7' : isNext ? '#e0e7ff' : '#f1f5f9';
+  const tagCol  = reached ? '#16a34a' : isNext ? '#4338ca' : '#94a3b8';
+  const barBg   = reached ? '#bbf7d0' : isNext ? '#c7d2fe' : '#e0e7ef';
+  const barFill = reached ? GREEN     : isNext ? FILL      : '#94a3b8';
+
+  return (
+    <div style={{
+      flex: compact ? '1 1 140px' : 1,
+      background: bg,
+      border: `1.5px solid ${border}`,
+      borderRadius: 12,
+      padding: compact ? '8px 10px' : '10px 14px',
+    }}>
+      {/* Name + badge */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ fontWeight: 700, fontSize: compact ? '0.8rem' : '0.9rem', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {r.image && <span style={{ marginRight: 4 }}>{r.image}</span>}{r.name}
         </div>
-
-        {/* Card */}
-        <div style={{
-          flex: 1, marginBottom: 4,
-          background: reached ? '#f0fff4' : isNext ? '#eef2ff' : '#f8faff',
-          border: `1.5px solid ${reached ? '#86efac' : isNext ? '#a5b4fc' : '#e0e7ef'}`,
-          borderRadius: 12,
-          padding: '10px 14px',
+        <span style={{
+          fontSize: '0.7rem', fontWeight: 700, whiteSpace: 'nowrap',
+          padding: '2px 7px', borderRadius: 20,
+          background: tagBg, color: tagCol,
+          flexShrink: 0,
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
-              {r.image && <span style={{ marginRight: 5 }}>{r.image}</span>}{r.name}
-            </div>
-            <span style={{
-              fontSize: '0.72rem', fontWeight: 700, whiteSpace: 'nowrap', padding: '2px 8px',
-              borderRadius: 20,
-              background: reached ? '#dcfce7' : isNext ? '#e0e7ff' : '#f1f5f9',
-              color: reached ? '#16a34a' : isNext ? '#4338ca' : '#94a3b8',
-            }}>
-              {r.points_required} ⭐
-            </span>
-          </div>
-
-          {reached && (
-            <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 600, marginTop: 4 }}>✅ Erreicht!</div>
-          )}
-
-          {isNext && (
-            <>
-              <div style={{ fontSize: '0.75rem', color: '#4338ca', fontWeight: 600, marginTop: 4 }}>
-                Noch {remaining} Punkte
-              </div>
-              <div style={{ marginTop: 6, height: 6, background: '#c7d2fe', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', borderRadius: 3,
-                  background: FILL,
-                  width: `${progressPct}%`,
-                  transition: 'width 0.4s ease',
-                }} />
-              </div>
-            </>
-          )}
-        </div>
+          {r.points_required} ⭐
+        </span>
       </div>
-    );
+
+      {/* Progress bar — always visible */}
+      <div style={{ marginTop: 6, height: 5, background: barBg, borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', borderRadius: 3,
+          background: barFill,
+          width: `${progressPct}%`,
+          transition: 'width 0.4s ease',
+        }} />
+      </div>
+
+      {/* Status text */}
+      <div style={{ fontSize: '0.72rem', fontWeight: 600, marginTop: 4, color: tagCol }}>
+        {reached
+          ? '✅ Erreicht!'
+          : isNext
+            ? `Noch ${remaining} Punkte · ${progressPct}%`
+            : `${progressPct}% · noch ${remaining} Punkte`}
+      </div>
+    </div>
+  );
+}
+
+// A tier groups rewards with the same points_required
+function TierRow({ tier, state, points }) {
+  const reached = state === 'achieved';
+  const isNext  = state === 'next';
+  const dotColor = reached ? GREEN : isNext ? BLUE : GREY;
+  const compact  = tier.rewards.length > 1;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+      <div style={{ width: 24, flexShrink: 0, display: 'flex', justifyContent: 'center', paddingTop: 2 }}>
+        <Dot color={dotColor} shadow={isNext} />
+      </div>
+      <div style={{ flex: 1, marginBottom: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {tier.rewards.map(r => (
+          <RewardCard key={r.id} r={r} state={state} points={points} compact={compact} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function PointsTimeline({ points = 0, rewards = [], birthdate = null }) {
+  const bday = nextBirthday(birthdate);
+
+  // Sort and group into tiers by points_required
+  const sorted = [...rewards].sort((a, b) => a.points_required - b.points_required);
+  if (sorted.length === 0 && !bday) return null;
+
+  const tiers = [];
+  for (const r of sorted) {
+    const last = tiers[tiers.length - 1];
+    if (last && last.points === r.points_required) {
+      last.rewards.push(r);
+    } else {
+      tiers.push({ points: r.points_required, rewards: [r] });
+    }
   }
+
+  const achievedTiers = tiers.filter(t => points >= t.points);
+  const upcomingTiers = tiers.filter(t => points <  t.points);
 
   return (
     <div style={{ padding: '4px 0' }}>
-      {/* Achieved milestones (bottom → current) */}
-      {achieved.map((r, i) => (
-        <div key={r.id}>
-          <MilestoneRow r={r} state="achieved" />
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
-              <div style={{ width: 4, background: i < achieved.length - 1 || next ? FILL : GREY, flex: 1, minHeight: 16, borderRadius: 4 }} />
-            </div>
-            <div style={{ flex: 1 }} />
-          </div>
+
+      {/* Achieved tiers */}
+      {achievedTiers.map((tier, i) => (
+        <div key={tier.points + '-' + i}>
+          <TierRow tier={tier} state="achieved" points={points} />
+          <Connector filled={true} minHeight={16} />
         </div>
       ))}
 
-      {/* Current position marker — always between achieved and next */}
+      {/* Current position marker */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
         <div style={{ width: 24, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
           <div style={{
@@ -147,28 +175,14 @@ export default function PointsTimeline({ points = 0, rewards = [], birthdate = n
         </div>
       </div>
 
-      {/* Connector from current to next */}
-      {next && (
-        <div style={{ display: 'flex', gap: 12 }}>
-          <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
-            <div style={{ width: 4, background: GREY, minHeight: 16, borderRadius: 4 }} />
-          </div>
-          <div style={{ flex: 1 }} />
-        </div>
-      )}
+      {/* Connector to first upcoming */}
+      {(upcomingTiers.length > 0 || bday) && <Connector filled={false} minHeight={16} />}
 
-      {/* Upcoming milestones */}
-      {upcoming.map((r, i) => (
-        <div key={r.id}>
-          <MilestoneRow r={r} state={i === 0 ? 'next' : 'future'} />
-          {(i < upcoming.length - 1 || bday) && (
-            <div style={{ display: 'flex', gap: 12 }}>
-              <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
-                <div style={{ width: 4, background: GREY, minHeight: 16, borderRadius: 4 }} />
-              </div>
-              <div style={{ flex: 1 }} />
-            </div>
-          )}
+      {/* Upcoming tiers */}
+      {upcomingTiers.map((tier, i) => (
+        <div key={tier.points + '-' + i}>
+          <TierRow tier={tier} state={i === 0 ? 'next' : 'future'} points={points} />
+          {(i < upcomingTiers.length - 1 || bday) && <Connector filled={false} minHeight={16} />}
         </div>
       ))}
 

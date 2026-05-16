@@ -134,68 +134,33 @@ function SessionCard({ session, usageMap, users, now, onStop, warnedRef, alarmed
         </button>
       </div>
 
-      {/* Timer(s) */}
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
-        {isGroup ? (
-          // Group: one big timer + per-user indicators below
-          <div style={{ textAlign: 'center' }}>
-            <MediaTimer
-              remainingSeconds={effectiveRemaining}
-              totalSeconds={effectiveTotal}
-              warnSeconds={effectiveWarn}
-              size={180}
-            />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 8 }}>
-              {perUser.map(({ uid, remainingSeconds }) => {
-                const u = users.find(x => x.id === uid);
-                return (
-                  <div key={uid} style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    background: u?.color + '22', borderRadius: 20, padding: '3px 10px',
-                    fontSize: '0.72rem', fontWeight: 700, color: '#374151',
-                  }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: u?.color }} />
-                    {u?.name}: {fmtMin(Math.max(0, remainingSeconds / 60))}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          // Individual: one timer per user (should only be one)
-          perUser.map(({ uid, remainingSeconds, totalSeconds, warnSeconds }) => {
-            const u = users.find(x => x.id === uid);
-            const usage = usageMap[uid];
-            return (
-              <div key={uid} style={{ flex: 1, minWidth: 160 }}>
+      {/* Timers — one per child, always individual */}
+      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+        {perUser.map(({ uid, remainingSeconds, totalSeconds, warnSeconds }) => {
+          const u = users.find(x => x.id === uid);
+          const usage = usageMap[uid];
+          return (
+            <div key={uid} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 150, maxWidth: 220 }}>
+              <Avatar user={u} size={48} />
+              <div style={{ marginTop: 6 }}>
                 <MediaTimer
                   remainingSeconds={remainingSeconds}
                   totalSeconds={totalSeconds}
                   warnSeconds={warnSeconds}
-                  size={180}
+                  size={session.user_ids.length > 1 ? 150 : 180}
                   label={u?.name}
                   userColor={u?.color}
                 />
-                {usage && (
-                  <div style={{ marginTop: 10 }}>
-                    <MiniBar
-                      label="Heute"
-                      used={usage.usedToday + elapsedSeconds / 60}
-                      total={usage.config?.daily_limit_minutes}
-                      color={u?.color}
-                    />
-                    <MiniBar
-                      label="Diese Woche"
-                      used={usage.usedWeek + elapsedSeconds / 60}
-                      total={usage.config?.weekly_limit_minutes}
-                      color={u?.color}
-                    />
-                  </div>
-                )}
               </div>
-            );
-          })
-        )}
+              {usage && (
+                <div style={{ width: '100%', marginTop: 8 }}>
+                  <MiniBar label="Heute" used={usage.usedToday + elapsedSeconds / 60} total={usage.config?.daily_limit_minutes} color={u?.color} />
+                  <MiniBar label="Woche" used={usage.usedWeek  + elapsedSeconds / 60} total={usage.config?.weekly_limit_minutes} color={u?.color} />
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
