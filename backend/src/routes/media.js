@@ -103,7 +103,17 @@ router.get('/usage/:id', (req, res) => {
 
 // GET /media/usage-all (parent only) — usage for all children
 router.get('/usage-all', parentOnly, (req, res) => {
-  const children = db.prepare("SELECT id,name,color,photo,age_group FROM users WHERE role='child'").all();
+  const children = db.prepare(`
+    SELECT u.id, u.name, u.color, u.photo, u.age_group,
+           COALESCE(a.balance, 0) AS balance,
+           COALESCE(a.savings_balance, 0) AS savings_balance,
+           COALESCE(p.balance, 0) AS points_balance,
+           COALESCE(p.streak_weeks, 0) AS streak_weeks
+    FROM users u
+    LEFT JOIN accounts a ON a.user_id = u.id
+    LEFT JOIN points p ON p.user_id = u.id
+    WHERE u.role = 'child'
+  `).all();
   const result = children.map(child => {
     ensureConfig(child.id);
     const config = db.prepare('SELECT * FROM media_config WHERE user_id=?').get(child.id);

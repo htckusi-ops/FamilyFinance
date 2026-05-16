@@ -6,10 +6,22 @@ import { useToast } from '../context/ToastContext';
 import Avatar from '../components/Avatar';
 import Modal from '../components/Modal';
 
+function fmtMedia(min) {
+  if (min == null) return '–';
+  if (min <= 0) return 'Überzeit';
+  if (min >= 60) {
+    const h = Math.floor(min / 60);
+    const m = Math.round(min % 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  return `${Math.round(min)}m`;
+}
+
 export default function ParentDashboard() {
   const { user } = useAuth();
   const toast = useToast();
   const [children, setChildren] = useState([]);
+  const [mediaMap, setMediaMap] = useState({});
   const [pendingClaims, setPendingClaims] = useState([]);
   const [quickAward, setQuickAward] = useState(null);
   const [jobs, setJobs] = useState([]);
@@ -20,14 +32,18 @@ export default function ParentDashboard() {
   }, []);
 
   async function load() {
-    const [usersRes, claimsRes, jobsRes] = await Promise.all([
+    const [usersRes, claimsRes, jobsRes, mediaRes] = await Promise.all([
       api.get('/users'),
       api.get('/rewards/claims/pending'),
       api.get('/points/jobs'),
+      api.get('/media/usage-all').catch(() => ({ data: [] })),
     ]);
     setChildren(usersRes.data.filter(u => u.role === 'child'));
     setPendingClaims(claimsRes.data);
     setJobs(jobsRes.data);
+    const map = {};
+    mediaRes.data.forEach(c => { map[c.id] = c; });
+    setMediaMap(map);
   }
 
   async function awardJob(childId, job) {
@@ -117,23 +133,49 @@ export default function ParentDashboard() {
               <div className="font-semibold mt-2">Finanzübersicht</div>
             </div>
           </Link>
+          <Link to="/media" style={{ textDecoration: 'none' }}>
+            <div className="card" style={{ background: '#eef2ff', textAlign: 'center', padding: 16 }}>
+              <div style={{ fontSize: '2rem' }}>📺</div>
+              <div className="font-semibold mt-2">Medienzeit</div>
+            </div>
+          </Link>
         </div>
       </div>
 
       {/* Children overview */}
       <h2 className="font-bold mb-3">👧👦 Kinder</h2>
       <div className="flex flex-col gap-3">
-        {children.map(child => (
-          <div key={child.id} className="card flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Avatar user={child} size={48} />
-              <span className="font-bold" style={{ fontSize: '1.1rem' }}>{child.name}</span>
+        {children.map(child => {
+          const m = mediaMap[child.id];
+          const isOver = m && m.remainingToday <= 0 && m.usedToday > 0;
+          return (
+            <div key={child.id} className="card" style={{ padding: '12px 14px' }}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3" style={{ minWidth: 0 }}>
+                  <Avatar user={child} size={44} />
+                  <div style={{ minWidth: 0 }}>
+                    <div className="font-bold" style={{ fontSize: '1.05rem' }}>{child.name}</div>
+                    {/* Stats row */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#f59e0b' }}>
+                        ⭐ {m?.points_balance ?? '–'}
+                      </span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isOver ? '#ef4444' : '#6366f1' }}>
+                        📺 {m ? fmtMedia(m.remainingToday) : '–'}
+                      </span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#22c55e' }}>
+                        💰 {m != null ? `CHF ${m.balance.toFixed(2)}` : '–'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button className="btn-primary" style={{ padding: '8px 14px', flexShrink: 0 }} onClick={() => setQuickAward(child)}>
+                  ⭐ Punkte
+                </button>
+              </div>
             </div>
-            <button className="btn-primary" style={{ padding: '8px 16px' }} onClick={() => setQuickAward(child)}>
-              ⭐ Punkte
-            </button>
-          </div>
-        ))}
+          );
+        })}
         {children.length === 0 && (
           <div className="card text-center text-muted">
             <p>Noch keine Kinder angelegt.</p>

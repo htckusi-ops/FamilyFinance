@@ -1,8 +1,23 @@
+// Format seconds → H:MM when scale is ≥ 1 h, else MM:SS
+function fmt(sec, useHM) {
+  if (useHM) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    return `${h}:${String(m).padStart(2, '0')}`;
+  }
+  const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+  const ss = String(sec % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
 export default function MediaTimer({ remainingSeconds, totalSeconds, warnSeconds = 120, size = 180, label, userColor }) {
   const R = size * 0.38;
   const cx = size / 2;
   const cy = size / 2;
   const C = 2 * Math.PI * R;
+
+  // Use H:MM format when the scale is ≥ 1 hour (budget clocks); MM:SS for short sessions
+  const useHM = totalSeconds >= 3600;
 
   const isOvertime = remainingSeconds < 0;
   const overSeconds = isOvertime ? Math.round(Math.abs(remainingSeconds)) : 0;
@@ -21,11 +36,13 @@ export default function MediaTimer({ remainingSeconds, totalSeconds, warnSeconds
   const textColor = isOvertime || isExpired ? '#ef4444' : '#1a1a2e';
 
   const displaySecs = isOvertime ? overSeconds : clamped;
-  const mm = String(Math.floor(displaySecs / 60)).padStart(2, '0');
-  const ss = String(displaySecs % 60).padStart(2, '0');
-  const timeText = isOvertime ? `+${mm}:${ss}` : `${mm}:${ss}`;
+  const timeText = isOvertime ? `+${fmt(displaySecs, useHM)}` : fmt(displaySecs, useHM);
 
-  const statusLabel = isOvertime ? 'ÜBERZEIT' : isExpired ? 'FERTIG' : isWarning ? 'FAST FERTIG' : 'verbleibend';
+  const statusLabel = isOvertime ? 'ÜBERZEIT'
+    : isExpired   ? 'FERTIG'
+    : isWarning   ? 'FAST FERTIG'
+    : useHM       ? 'h:mm'
+    : 'verbleibend';
   const statusColor = isOvertime || isExpired ? '#ef4444' : isWarning ? '#f59e0b' : '#94a3b8';
   const shouldBlink = isWarning || isExpired || isOvertime;
 
@@ -64,7 +81,7 @@ export default function MediaTimer({ remainingSeconds, totalSeconds, warnSeconds
         >
           {timeText}
         </text>
-        {/* Status label — hidden on very small clocks */}
+        {/* Status / unit label */}
         {size >= 100 && (
           <text
             x={cx} y={cy + size * 0.22}
