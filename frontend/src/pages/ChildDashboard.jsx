@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../api/client';
@@ -17,10 +18,12 @@ function greeting() {
 export default function ChildDashboard() {
   const { user } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [rewards, setRewards] = useState([]);
   const [claimModal, setClaimModal] = useState(null);
   const [newBadge, setNewBadge] = useState(null);
+  const [mediaUsage, setMediaUsage] = useState(null);
 
   const [settings, setSettings] = useState({});
   const [transferModal, setTransferModal] = useState(null); // 'to_savings' | 'from_savings'
@@ -31,14 +34,16 @@ export default function ChildDashboard() {
   }, []);
 
   async function load() {
-    const [dashRes, rewardsRes, settingsRes] = await Promise.all([
+    const [dashRes, rewardsRes, settingsRes, mediaRes] = await Promise.all([
       api.get(`/users/${user.id}/dashboard`),
       api.get('/rewards'),
       api.get('/settings').catch(() => ({ data: {} })),
+      api.get(`/media/usage/${user.id}`).catch(() => ({ data: null })),
     ]);
     setData(dashRes.data);
     setRewards(rewardsRes.data);
     setSettings(settingsRes.data);
+    setMediaUsage(mediaRes.data);
   }
 
   async function claimReward(reward) {
@@ -139,6 +144,68 @@ export default function ChildDashboard() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Media time overview */}
+      {mediaUsage && (
+        <div className="card mb-4" style={{ cursor: 'pointer' }} onClick={() => navigate('/media')}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold">📺 Medienzeit heute</h2>
+            <span style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 700 }}>Details →</span>
+          </div>
+          {/* Daily row */}
+          {(() => {
+            const used = mediaUsage.usedToday || 0;
+            const limit = mediaUsage.config?.daily_limit_minutes || 60;
+            const pct = Math.min(100, Math.round((used / limit) * 100));
+            const over = Math.max(0, used - limit);
+            const remaining = Math.max(0, limit - used);
+            const barColor = over > 0 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#6366f1';
+            return (
+              <div className="mb-3">
+                <div className="flex justify-between items-center mb-1">
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#64748b' }}>Heute</span>
+                  <div className="flex items-center gap-2">
+                    {over > 0
+                      ? <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#fee2e2', color: '#dc2626' }}>⚠️ +{Math.round(over)} Min Überzeit</span>
+                      : <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{Math.round(remaining)} Min übrig</span>
+                    }
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{Math.round(used)}/{limit} Min</span>
+                  </div>
+                </div>
+                <div style={{ height: 8, background: '#e0e7ef', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 4, transition: 'width 0.3s' }} />
+                </div>
+              </div>
+            );
+          })()}
+          {/* Weekly row */}
+          {(() => {
+            const used = mediaUsage.usedWeek || 0;
+            const limit = mediaUsage.config?.weekly_limit_minutes || 300;
+            const pct = Math.min(100, Math.round((used / limit) * 100));
+            const over = Math.max(0, used - limit);
+            const remaining = Math.max(0, limit - used);
+            const barColor = over > 0 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#818cf8';
+            return (
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#64748b' }}>Diese Woche</span>
+                  <div className="flex items-center gap-2">
+                    {over > 0
+                      ? <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#fee2e2', color: '#dc2626' }}>⚠️ +{Math.round(over)} Min Überzeit</span>
+                      : <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{Math.round(remaining)} Min übrig</span>
+                    }
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{Math.round(used)}/{limit} Min</span>
+                  </div>
+                </div>
+                <div style={{ height: 8, background: '#e0e7ef', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 4, transition: 'width 0.3s' }} />
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
