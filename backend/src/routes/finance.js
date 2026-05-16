@@ -13,12 +13,22 @@ router.get('/overview', parentOnly, (req, res) => {
   db.prepare('SELECT key, value FROM family_settings').all().forEach(s => { settings[s.key] = s.value; });
   const pointRate = parseFloat(settings.point_value_chf || '0.10');
 
+  function periodsPerYear(interval) {
+    switch (interval) {
+      case 'weekly':      return 52;
+      case 'quarterly':   return 4;
+      case 'semi-annual': return 2;
+      case 'annual':      return 1;
+      default:            return 12;
+    }
+  }
+
   // Children with balances + allowance config + interest rate
   const children = db.prepare(`
     SELECT u.id, u.name, u.color, a.balance, a.savings_balance,
            p.balance as points_balance,
            ac.amount as allowance_amount, ac.interval as allowance_interval,
-           ac.interest_rate
+           ac.interest_rate, ac.interest_interval, ac.next_interest_at
     FROM users u
     LEFT JOIN accounts a ON a.user_id = u.id
     LEFT JOIN points p ON p.user_id = u.id
@@ -31,7 +41,9 @@ router.get('/overview', parentOnly, (req, res) => {
       : c.allowance_amount;
     const interestRate = c.interest_rate || 0;
     const savingsBalance = c.savings_balance || 0;
+    const intInterval = c.interest_interval || 'monthly';
     const interestYearly = Math.round(savingsBalance * (interestRate / 100) * 100) / 100;
+    const interestPerPeriod = Math.round(interestYearly / periodsPerYear(intInterval) * 100) / 100;
     const interestMonthly = Math.round(interestYearly / 12 * 100) / 100;
     return {
       id: c.id, name: c.name, color: c.color,
@@ -43,8 +55,11 @@ router.get('/overview', parentOnly, (req, res) => {
       allowance_interval: c.allowance_interval || 'monthly',
       allowance_monthly: Math.round(monthly * 100) / 100,
       interest_rate: interestRate,
+      interest_interval: intInterval,
       interest_yearly: interestYearly,
+      interest_per_period: interestPerPeriod,
       interest_monthly: interestMonthly,
+      next_interest_at: c.next_interest_at,
     };
   });
 

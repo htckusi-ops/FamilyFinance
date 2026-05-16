@@ -9,7 +9,8 @@ router.get('/', parentOnly, (_req, res) => {
   const rows = db.prepare(`
     SELECT u.id, u.name, u.photo, u.color,
            a.balance, a.savings_balance,
-           ac.amount, ac.interval, ac.next_payout_at, ac.interest_rate
+           ac.amount, ac.interval, ac.next_payout_at,
+           ac.interest_rate, ac.interest_interval, ac.next_interest_at
     FROM users u
     LEFT JOIN accounts a ON a.user_id=u.id
     LEFT JOIN allowance_config ac ON ac.user_id=u.id
@@ -112,11 +113,17 @@ router.post('/:id/savings/self-transfer', (req, res) => {
 
 router.post('/:id/config', parentOnly, (req, res) => {
   const uid = Number(req.params.id);
-  const { amount, interval, interest_rate, next_payout_at } = req.body;
+  const { amount, interval, interest_rate, next_payout_at, interest_interval, next_interest_at } = req.body;
   db.prepare(`
-    UPDATE allowance_config SET amount=?, interval=?, interest_rate=?, next_payout_at=?
+    UPDATE allowance_config SET
+      amount=?, interval=?, interest_rate=?, next_payout_at=?,
+      interest_interval=?, next_interest_at=?
     WHERE user_id=?
-  `).run(amount, interval, interest_rate || 0, next_payout_at || null, uid);
+  `).run(
+    amount, interval, interest_rate || 0, next_payout_at || null,
+    interest_interval || 'monthly', next_interest_at || null,
+    uid
+  );
   res.json({ ok: true });
 });
 

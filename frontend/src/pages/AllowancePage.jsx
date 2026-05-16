@@ -23,6 +23,14 @@ async function resizeImage(file, maxPx = 500) {
   });
 }
 
+const INTERVAL_LABELS = {
+  weekly: 'Wöchentlich',
+  monthly: 'Monatlich',
+  quarterly: 'Vierteljährlich',
+  'semi-annual': 'Halbjährlich',
+  annual: 'Jährlich',
+};
+
 const TX_LABELS = {
   allowance: 'Taschengeld',
   manual: 'Manuell',
@@ -44,7 +52,7 @@ export default function AllowancePage() {
   const [goalModal, setGoalModal] = useState(false);
   const [expenseModal, setExpenseModal] = useState(false);
   const [pay, setPay] = useState({ amount: '', description: '' });
-  const [config, setConfig] = useState({ amount: '', interval: 'monthly', interest_rate: '', next_payout_at: '' });
+  const [config, setConfig] = useState({ amount: '', interval: 'monthly', interest_rate: '', next_payout_at: '', interest_interval: 'monthly', next_interest_at: '' });
   const [newGoal, setNewGoal] = useState({ name: '', target_amount: '' });
   const [expense, setExpense] = useState({ amount: '', description: '' });
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -63,6 +71,8 @@ export default function AllowancePage() {
       interval: r.data.config?.interval || 'monthly',
       interest_rate: r.data.config?.interest_rate || '',
       next_payout_at: r.data.config?.next_payout_at?.slice(0, 10) || '',
+      interest_interval: r.data.config?.interest_interval || 'monthly',
+      next_interest_at: r.data.config?.next_interest_at?.slice(0, 10) || '',
     });
   }
   async function doPay() {
@@ -74,7 +84,11 @@ export default function AllowancePage() {
     load();
   }
   async function doConfig() {
-    await api.post(`/allowance/${selected.id}/config`, { ...config, amount: Number(config.amount), interest_rate: Number(config.interest_rate) || 0 });
+    await api.post(`/allowance/${selected.id}/config`, {
+      ...config,
+      amount: Number(config.amount),
+      interest_rate: Number(config.interest_rate) || 0,
+    });
     toast('Konfiguration gespeichert!', 'success');
     setConfigModal(false);
     loadDetail(selected);
@@ -175,12 +189,34 @@ export default function AllowancePage() {
           </div>
 
           {/* Config info */}
-          {detail?.config?.amount > 0 && (
+          {detail?.config && (detail.config.amount > 0 || detail.config.interest_rate > 0) && (
             <div className="card mb-4" style={{ background: '#f0f7ff' }}>
-              <div className="text-sm text-muted">Automatisches Taschengeld</div>
-              <div className="font-bold">CHF {detail.config.amount} / {detail.config.interval === 'weekly' ? 'Woche' : 'Monat'}</div>
-              {detail.config.interest_rate > 0 && <div className="text-sm text-muted">Zinssatz: {detail.config.interest_rate}%</div>}
-              {detail.config.next_payout_at && <div className="text-sm text-muted">Nächste Auszahlung: {new Date(detail.config.next_payout_at).toLocaleDateString('de-CH')}</div>}
+              {detail.config.amount > 0 && (
+                <>
+                  <div className="text-sm text-muted">Automatisches Taschengeld</div>
+                  <div className="font-bold">
+                    CHF {detail.config.amount} · {INTERVAL_LABELS[detail.config.interval] || detail.config.interval}
+                  </div>
+                  {detail.config.next_payout_at && (
+                    <div className="text-sm text-muted">
+                      Nächste Auszahlung: {new Date(detail.config.next_payout_at).toLocaleDateString('de-CH')}
+                    </div>
+                  )}
+                </>
+              )}
+              {detail.config.interest_rate > 0 && (
+                <div className="mt-2" style={{ borderTop: detail.config.amount > 0 ? '1px solid #dbeafe' : 'none', paddingTop: detail.config.amount > 0 ? 8 : 0 }}>
+                  <div className="text-sm text-muted">Zinsen auf Erspartes</div>
+                  <div className="font-bold">
+                    {detail.config.interest_rate}% p.a. · {INTERVAL_LABELS[detail.config.interest_interval || 'monthly']}
+                  </div>
+                  {detail.config.next_interest_at && (
+                    <div className="text-sm text-muted">
+                      Nächste Zinszahlung: {new Date(detail.config.next_interest_at).toLocaleDateString('de-CH')}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -250,18 +286,55 @@ export default function AllowancePage() {
 
       <Modal open={configModal} title="Taschengeld-Konfiguration" onClose={() => setConfigModal(false)}>
         <div className="flex flex-col gap-3">
-          <input type="number" placeholder="Betrag (CHF)" value={config.amount} onChange={e => setConfig(c => ({ ...c, amount: e.target.value }))} />
+          {/* Allowance */}
+          <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', paddingBottom: 2, borderBottom: '1px solid #e0e7ef' }}>
+            💰 Automatisches Taschengeld
+          </div>
+          <input type="number" placeholder="Betrag (CHF)" value={config.amount}
+            onChange={e => setConfig(c => ({ ...c, amount: e.target.value }))} />
           <select value={config.interval} onChange={e => setConfig(c => ({ ...c, interval: e.target.value }))}>
             <option value="weekly">Wöchentlich</option>
             <option value="monthly">Monatlich</option>
           </select>
-          <input type="number" placeholder="Zinssatz (% pro Monat, optional)" value={config.interest_rate}
-            onChange={e => setConfig(c => ({ ...c, interest_rate: e.target.value }))} />
           <div>
             <label className="text-sm text-muted">Nächste automatische Auszahlung</label>
-            <input type="date" value={config.next_payout_at} onChange={e => setConfig(c => ({ ...c, next_payout_at: e.target.value }))} />
+            <input type="date" value={config.next_payout_at}
+              onChange={e => setConfig(c => ({ ...c, next_payout_at: e.target.value }))} />
           </div>
-          <button className="btn-primary w-full" onClick={doConfig}>Speichern</button>
+
+          {/* Interest */}
+          <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', paddingBottom: 2, borderBottom: '1px solid #e0e7ef', marginTop: 4 }}>
+            🐷 Zinsen auf Erspartes
+          </div>
+          <div>
+            <label className="text-sm text-muted">Jahreszins (% p.a.)</label>
+            <input type="number" placeholder="z.B. 2 für 2% pro Jahr" min="0" max="100" step="0.1"
+              value={config.interest_rate}
+              onChange={e => setConfig(c => ({ ...c, interest_rate: e.target.value }))} />
+          </div>
+          <div>
+            <label className="text-sm text-muted">Auszahlungsintervall</label>
+            <select value={config.interest_interval}
+              onChange={e => setConfig(c => ({ ...c, interest_interval: e.target.value }))}>
+              {Object.entries(INTERVAL_LABELS).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+          {config.interest_rate > 0 && config.interest_interval && (
+            <div style={{ fontSize: '0.78rem', color: '#6366f1', background: '#eef2ff', borderRadius: 8, padding: '6px 10px' }}>
+              Pro Auszahlung: ≈ CHF {
+                ((Number(config.interest_rate) / 100) / { weekly: 52, monthly: 12, quarterly: 4, 'semi-annual': 2, annual: 1 }[config.interest_interval]).toFixed(4)
+              } je CHF 1 Erspartes
+            </div>
+          )}
+          <div>
+            <label className="text-sm text-muted">Nächste Zinszahlung</label>
+            <input type="date" value={config.next_interest_at}
+              onChange={e => setConfig(c => ({ ...c, next_interest_at: e.target.value }))} />
+          </div>
+
+          <button className="btn-primary w-full" style={{ marginTop: 4 }} onClick={doConfig}>Speichern</button>
         </div>
       </Modal>
 
