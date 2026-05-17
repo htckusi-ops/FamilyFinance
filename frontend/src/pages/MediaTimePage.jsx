@@ -187,10 +187,11 @@ export default function MediaTimePage() {
   const [correctionForm, setCorrectionForm] = useState({ todayRemaining: '', weekRemaining: '', note: '' });
   const [resetHour, setResetHour] = useState('0');
   const [weekStartDay, setWeekStartDay] = useState('1');
-  const [sessionsByChild, setSessionsByChild] = useState({});   // { childId: [sessions] }
-  const [expandedChild, setExpandedChild] = useState(null);    // childId with sessions visible
-  const [editSession, setEditSession] = useState(null);        // session object being edited
+  const [sessionsByChild, setSessionsByChild] = useState({});
+  const [expandedChild, setExpandedChild] = useState(null);
+  const [editSession, setEditSession] = useState(null);
   const [editDuration, setEditDuration] = useState('');
+  const [tagSessionId, setTagSessionId] = useState(null); // V8: quality tag after stop
   const warnedRef  = useRef(new Set());
   const alarmedRef = useRef(new Set());
 
@@ -258,15 +259,24 @@ export default function MediaTimePage() {
       warnedRef.current.delete(sid);
       alarmedRef.current.delete(sid);
       toast('Session beendet ⏹', 'success');
+      setTagSessionId(sid); // V8: open quality tag dialog
       load();
     } catch (err) {
       toast(err.response?.data?.error || 'Fehler', 'error');
     }
   }
 
+  async function saveQualityTag(tag) {
+    if (tagSessionId) await api.patch(`/media/sessions/${tagSessionId}`, { quality_tag: tag });
+    setTagSessionId(null);
+    load();
+  }
+
   async function saveConfig() {
     await api.post(`/media/config/${configUser.id}`, {
       daily_limit_minutes:  Math.max(1, Number(configForm.daily_limit_minutes)  || 60),
+      daily_limit_weekend_minutes: configForm.daily_limit_weekend_minutes !== ''
+        ? Math.max(1, Number(configForm.daily_limit_weekend_minutes)) : null,
       weekly_limit_minutes: Math.max(1, Number(configForm.weekly_limit_minutes) || 300),
       warn_before_minutes:  Math.max(1, Number(configForm.warn_before_minutes)  || 2),
       active_half_count: configForm.active_half_count,
@@ -375,6 +385,8 @@ export default function MediaTimePage() {
   function openConfig(child) {
     setConfigForm({
       daily_limit_minutes:  String(child.config?.daily_limit_minutes  ?? 60),
+      daily_limit_weekend_minutes: child.config?.daily_limit_weekend_minutes != null
+        ? String(child.config.daily_limit_weekend_minutes) : '',
       weekly_limit_minutes: String(child.config?.weekly_limit_minutes ?? 300),
       warn_before_minutes:  String(child.config?.warn_before_minutes  ?? 2),
       active_half_count: child.config?.active_half_count ?? 0,
@@ -611,6 +623,7 @@ export default function MediaTimePage() {
                           <span style={{ fontWeight: 600 }}>{new Date(s.started_at).toLocaleDateString('de-CH')}</span>
                           {' · '}
                           <span style={{ color: '#64748b' }}>{s.category === 'active' ? '📚' : '📺'} {fmtMin(s.duration_minutes || 0)}</span>
+                          {s.quality_tag && <span style={{ color: '#6366f1' }}> · {{ learn: '📚 Lernen', creative: '🎨 Kreativ', together: '👨‍👩‍👧 Gemeinsam', game: '🎮 Spielen' }[s.quality_tag]}</span>}
                           {s.notes && <span style={{ color: '#94a3b8' }}> · {s.notes}</span>}
                         </div>
                         <button
@@ -787,8 +800,9 @@ export default function MediaTimePage() {
                 );
               })}
               {startSelected.length > 1 && (
-                <div style={{ fontSize:'0.75rem', color:'#94a3b8', marginTop:6, borderTop:'1px solid #e0e7ef', paddingTop:6 }}>
-                  ⚠️ Timer läuft bis das erste Kind sein Limit erreicht
+                <div style={{ fontSize:'0.75rem', color:'#64748b', marginTop:6, borderTop:'1px solid #e0e7ef', paddingTop:6, lineHeight: 1.5 }}>
+                  ⚠️ Timer läuft bis das erste Kind sein Limit erreicht<br />
+                  <span style={{ color: '#6366f1' }}>👨‍👩‍👧 Gemeinsam schauen ist gut — laut AAP fördert Co-Viewing Gespräche und soziale Kompetenz.</span>
                 </div>
               )}
             </div>
@@ -919,13 +933,24 @@ export default function MediaTimePage() {
           <div className="flex flex-col gap-4">
             <div>
               <label style={{ fontWeight:700, fontSize:'0.85rem', display:'block', marginBottom:4 }}>
-                📅 Tageslimit (Minuten)
+                📅 Tageslimit Schultag (Minuten)
               </label>
               <input type="number" min="5" max="600"
                 value={configForm.daily_limit_minutes}
                 onChange={e => setConfigForm(f => ({ ...f, daily_limit_minutes: e.target.value }))} />
               <div style={{ fontSize:'0.72rem', color:'#94a3b8', marginTop:4 }}>
                 Empfehlung (AWMF): {configUser.age_group === 'preschool' ? '30 Min' : configUser.age_group === 'teen' ? '120 Min' : '60 Min'}
+              </div>
+            </div>
+            <div>
+              <label style={{ fontWeight:700, fontSize:'0.85rem', display:'block', marginBottom:4 }}>
+                🌅 Tageslimit Wochenende (Minuten, optional)
+              </label>
+              <input type="number" min="5" max="600" placeholder="Leer = gleich wie Schultag"
+                value={configForm.daily_limit_weekend_minutes}
+                onChange={e => setConfigForm(f => ({ ...f, daily_limit_weekend_minutes: e.target.value }))} />
+              <div style={{ fontSize:'0.72rem', color:'#94a3b8', marginTop:4 }}>
+                AWMF empfiehlt: Wochenenden können grosszügiger sein als Schultage.
               </div>
             </div>
             <div>
@@ -962,6 +987,30 @@ export default function MediaTimePage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* ── V8: Quality tag modal after session stop ── */}
+      <Modal open={!!tagSessionId} title="Wie war die Medienzeit?" onClose={() => setTagSessionId(null)}>
+        <div className="flex flex-col gap-3">
+          <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
+            Optional: Kurz markieren, was gemacht wurde — hilft beim Überblick.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {[
+              ['learn',    '📚', 'Lernen / Schulisches'],
+              ['creative', '🎨', 'Kreativ / Basteln'],
+              ['together', '👨‍👩‍👧', 'Gemeinsam geschaut'],
+              ['game',     '🎮', 'Spielen / Unterhaltung'],
+            ].map(([tag, icon, label]) => (
+              <button key={tag} onClick={() => saveQualityTag(tag)}
+                style={{ background: '#f8faff', border: '1.5px solid #e0e7ef', borderRadius: 14, padding: '14px 10px', cursor: 'pointer', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.8rem', marginBottom: 4 }}>{icon}</div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600 }}>{label}</div>
+              </button>
+            ))}
+          </div>
+          <button className="btn-ghost w-full" onClick={() => setTagSessionId(null)}>Überspringen</button>
+        </div>
       </Modal>
     </div>
   );

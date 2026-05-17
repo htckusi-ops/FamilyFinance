@@ -254,6 +254,12 @@ function migrate() {
   // Streak-Freeze: 1 kostenloser Freeze pro Monat (pädagogisch: Resilienz statt Scham bei Ausfall)
   try { db.exec('ALTER TABLE points ADD COLUMN streak_freeze INTEGER DEFAULT 1'); } catch {}
   try { db.exec('ALTER TABLE points ADD COLUMN streak_freeze_month TEXT'); } catch {}
+  // V5: Wochenende-Limit für Medienzeit (AWMF: Wochenenden können grosszügiger sein)
+  try { db.exec('ALTER TABLE media_config ADD COLUMN daily_limit_weekend_minutes INTEGER'); } catch {}
+  // V6: Reflexion nach Ausgaben (EU/OECD: financial attitudes)
+  try { db.exec('ALTER TABLE transactions ADD COLUMN reflection TEXT'); } catch {}
+  // V8: Qualitäts-Tagging für Medienzeit-Sessions (AAP: quality over quantity)
+  try { db.exec('ALTER TABLE media_sessions ADD COLUMN quality_tag TEXT'); } catch {}
 
   seedBadges();
   seedDefaultAdmin();

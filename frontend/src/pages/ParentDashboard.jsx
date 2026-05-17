@@ -6,6 +6,22 @@ import { useToast } from '../context/ToastContext';
 import Avatar from '../components/Avatar';
 import Modal from '../components/Modal';
 
+// V7: Wöchentliche Gesprächs-Impulse (AAP: Conversation ist wichtigste Variable)
+const WEEKLY_TIPS = [
+  { icon: '💬', text: 'Frag dein Kind heute: Was würdest du mit 100 CHF machen, wenn du sie geschenkt bekämst?' },
+  { icon: '🎯', text: 'Hat dein Kind ein Sparziel? Frag, warum ihm gerade dieses Ziel wichtig ist.' },
+  { icon: '📺', text: 'Hat dein Kind diese Woche Medienzeit genutzt? Frag: Was habt ihr gemacht oder gesehen? Hat es Spass gemacht?' },
+  { icon: '🛒', text: 'War dein Kind kürzlich beim Einkaufen? Sprich über Preisunterschiede: Warum kostet das eine mehr als das andere?' },
+  { icon: '⭐', text: 'Hat dein Kind diese Woche einen Job erledigt? Frag nicht nur "gut gemacht", sondern: Was war dabei schwierig?' },
+  { icon: '🐷', text: 'Schau gemeinsam auf das Sparkonto: Wie viel fehlt noch zum Ziel? Wie lange würde es mit dem aktuellen Sackgeld dauern?' },
+  { icon: '🏷️', text: 'Plant ihr einen Flohmarkt? Frag dein Kind: Wie findet man heraus, was etwas wert ist?' },
+];
+
+function getWeeklyTip() {
+  const week = Math.floor(Date.now() / (7 * 24 * 3600 * 1000));
+  return WEEKLY_TIPS[week % WEEKLY_TIPS.length];
+}
+
 function fmtMedia(min) {
   if (min == null) return '–';
   if (min <= 0) return 'Überzeit';
@@ -26,6 +42,11 @@ export default function ParentDashboard() {
   const [quickAward, setQuickAward] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [freePoints, setFreePoints] = useState({ delta: '', description: '' });
+  const currentWeek = String(Math.floor(Date.now() / (7 * 24 * 3600 * 1000)));
+  const [tipDismissed, setTipDismissed] = useState(
+    () => localStorage.getItem('parent_tip_week') === currentWeek
+  );
+  const weeklyTip = getWeeklyTip();
 
   useEffect(() => {
     load();
@@ -141,6 +162,25 @@ export default function ParentDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* V7: Wöchentlicher Gesprächs-Impuls */}
+      {!tipDismissed && (
+        <div className="card mb-4" style={{ background: 'linear-gradient(135deg,#f0fdf4,#f0f7ff)', borderLeft: '4px solid #6366f1' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flex: 1 }}>
+              <span style={{ fontSize: '1.6rem', flexShrink: 0 }}>{weeklyTip.icon}</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#4338ca', marginBottom: 4 }}>💡 Gesprächs-Impuls der Woche</div>
+                <div style={{ fontSize: '0.82rem', color: '#374151', lineHeight: 1.5 }}>{weeklyTip.text}</div>
+              </div>
+            </div>
+            <button onClick={() => { localStorage.setItem('parent_tip_week', currentWeek); setTipDismissed(true); }}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.1rem', flexShrink: 0, padding: '0 2px' }}>
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Children overview */}
       <h2 className="font-bold mb-3">👧👦 Kinder</h2>

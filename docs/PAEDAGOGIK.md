@@ -126,12 +126,12 @@ AAP-Ansatz "quality over quantity": Kategorisierung der Sessions (Lernen/Kreativ
 | V2 | Streak-Freeze + positives Reframing bei Unterbrechung | ✅ Umgesetzt | Hoch |
 | V3 | Warnung bei Pflicht-Jobs mit Punkten > 0 | ✅ Umgesetzt | Hoch |
 | V4 | Zinssatz-Plausibilitätshinweis (1–3% p.a. Referenz) | ✅ Umgesetzt | Mittel |
-| V5 | Schultag/Wochenende-Differenzierung für Medienzeit-Limits | 🔲 Offen | Mittel |
-| V6 | Reflexions-Prompt nach Ausgaben (für Kinder) | 🔲 Offen | Mittel |
-| V7 | Wöchentliche Gesprächs-Impulse für Eltern | 🔲 Offen | Niedrig |
-| V8 | Qualitäts-Tagging für Medienzeit-Sessions | 🔲 Offen | Niedrig |
+| V5 | Schultag/Wochenende-Differenzierung für Medienzeit-Limits | ✅ Umgesetzt | Mittel |
+| V6 | Reflexions-Prompt nach Ausgaben (für Kinder) | ✅ Umgesetzt | Mittel |
+| V7 | Wöchentliche Gesprächs-Impulse für Eltern | ✅ Umgesetzt | Niedrig |
+| V8 | Qualitäts-Tagging für Medienzeit-Sessions | ✅ Umgesetzt | Niedrig |
 | V9 | Badges mit Kompetenz-Text (nicht nur Trophäe) | ✅ Umgesetzt | Mittel |
-| V10 | Co-Viewing als positive Option rahmen | 🔲 Offen | Niedrig |
+| V10 | Co-Viewing als positive Option rahmen | ✅ Umgesetzt | Niedrig |
 
 ---
 

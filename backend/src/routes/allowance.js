@@ -196,4 +196,16 @@ router.post('/:id/receipt', parentOnly, require('../middleware/upload').single('
   }
 });
 
+// PATCH /:id/transactions/:txId/reflect — Kind oder Elternteil speichert Reflexion
+// Werte: 'good' | 'unsure' | 'regret'  (EU/OECD: financial attitudes)
+router.patch('/:id/transactions/:txId/reflect', (req, res) => {
+  const uid = Number(req.params.id);
+  if (req.user.role !== 'parent' && req.user.id !== uid) return res.status(403).json({ error: 'Forbidden' });
+  const { reflection } = req.body;
+  if (!['good', 'unsure', 'regret'].includes(reflection)) return res.status(400).json({ error: 'Ungültige Reflexion' });
+  db.prepare('UPDATE transactions SET reflection=? WHERE id=? AND user_id=?')
+    .run(reflection, Number(req.params.txId), uid);
+  res.json({ ok: true });
+});
+
 module.exports = router;

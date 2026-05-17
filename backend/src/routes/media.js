@@ -78,6 +78,23 @@ function getResetInfo(settings) {
   };
 }
 
+// Returns true when the "media today" date falls on a weekend (Sat or Sun)
+function isWeekendDay(settings) {
+  const now = new Date();
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  if (now.getUTCHours() < settings.resetHour) d.setUTCDate(d.getUTCDate() - 1);
+  const day = d.getUTCDay();
+  return day === 0 || day === 6;
+}
+
+function getEffectiveDailyLimit(config, settings) {
+  if (isWeekendDay(settings) && config.daily_limit_weekend_minutes != null) {
+    return config.daily_limit_weekend_minutes;
+  }
+  return config.daily_limit_minutes;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 function getUsage(uid) {
@@ -136,7 +153,7 @@ router.get('/config/:id', (req, res) => {
 router.post('/config/:id', parentOnly, (req, res) => {
   const uid = Number(req.params.id);
   ensureConfig(uid);
-  const { daily_limit_minutes, weekly_limit_minutes, warn_before_minutes, active_half_count } = req.body;
+  const { daily_limit_minutes, daily_limit_weekend_minutes, weekly_limit_minutes, warn_before_minutes, active_half_count } = req.body;
   db.prepare(`UPDATE media_config SET
     daily_limit_minutes=COALESCE(?,daily_limit_minutes),
     weekly_limit_minutes=COALESCE(?,weekly_limit_minutes),
@@ -150,6 +167,11 @@ router.post('/config/:id', parentOnly, (req, res) => {
     active_half_count !== undefined ? (active_half_count ? 1 : 0) : null,
     uid
   );
+  // Weekend limit handled separately (can be set to NULL to disable)
+  if ('daily_limit_weekend_minutes' in req.body) {
+    const wv = daily_limit_weekend_minutes != null ? Number(daily_limit_weekend_minutes) : null;
+    db.prepare('UPDATE media_config SET daily_limit_weekend_minutes=? WHERE user_id=?').run(wv, uid);
+  }
   res.json({ ok: true });
 });
 
@@ -161,18 +183,22 @@ router.get('/usage/:id', (req, res) => {
   const config = db.prepare('SELECT * FROM media_config WHERE user_id=?').get(uid);
   const { usedToday, usedWeek } = getUsage(uid);
   const settings = getMediaSettings();
+  const effectiveDailyLimit = getEffectiveDailyLimit(config, settings);
   res.json({
     config,
     usedToday: Math.round(usedToday * 10) / 10,
     usedWeek:  Math.round(usedWeek  * 10) / 10,
-    remainingToday: Math.max(0, config.daily_limit_minutes - usedToday),
+    remainingToday: Math.max(0, effectiveDailyLimit - usedToday),
     remainingWeek:  Math.max(0, config.weekly_limit_minutes - usedWeek),
+    effectiveDailyLimit,
+    isWeekend: isWeekendDay(settings),
     resetInfo: getResetInfo(settings),
   });
 });
 
 // GET /media/usage-all (parent only) — usage for all children
 router.get('/usage-all', parentOnly, (req, res) => {
+  const settings = getMediaSettings();
   const children = db.prepare(`
     SELECT u.id, u.name, u.color, u.photo, u.age_group,
            COALESCE(a.balance, 0) AS balance,
@@ -188,13 +214,16 @@ router.get('/usage-all', parentOnly, (req, res) => {
     ensureConfig(child.id);
     const config = db.prepare('SELECT * FROM media_config WHERE user_id=?').get(child.id);
     const { usedToday, usedWeek } = getUsage(child.id);
+    const effectiveDailyLimit = getEffectiveDailyLimit(config, settings);
     return {
       ...child,
       config,
       usedToday: Math.round(usedToday * 10) / 10,
       usedWeek: Math.round(usedWeek * 10) / 10,
-      remainingToday: Math.max(0, config.daily_limit_minutes - usedToday),
+      remainingToday: Math.max(0, effectiveDailyLimit - usedToday),
       remainingWeek: Math.max(0, config.weekly_limit_minutes - usedWeek),
+      effectiveDailyLimit,
+      isWeekend: isWeekendDay(settings),
     };
   });
   res.json(result);
@@ -301,16 +330,25 @@ router.get('/sessions', (req, res) => {
   res.json(rows.map(normalizeSession));
 });
 
-// PATCH /media/sessions/:id (parent only) — edit duration and/or notes
-router.patch('/sessions/:id', parentOnly, (req, res) => {
+// PATCH /media/sessions/:id — edit duration, notes, quality_tag
+// quality_tag is child-accessible (for tagging just-stopped sessions)
+router.patch('/sessions/:id', auth, (req, res) => {
   const sid = Number(req.params.id);
-  const { duration_minutes, notes } = req.body;
+  const { duration_minutes, notes, quality_tag } = req.body;
+  if (req.user.role !== 'parent' && (duration_minutes !== undefined || notes !== undefined)) {
+    return res.status(403).json({ error: 'Nur Eltern können Dauer/Notizen bearbeiten' });
+  }
   if (duration_minutes !== undefined) {
     const mins = Math.max(0, Math.round(Number(duration_minutes) * 10) / 10);
     db.prepare('UPDATE media_sessions SET duration_minutes=? WHERE id=?').run(mins, sid);
   }
   if (notes !== undefined) {
     db.prepare('UPDATE media_sessions SET notes=? WHERE id=?').run(notes || null, sid);
+  }
+  if (quality_tag !== undefined) {
+    const valid = ['learn', 'creative', 'together', 'game', null];
+    if (!valid.includes(quality_tag)) return res.status(400).json({ error: 'Ungültiges Tag' });
+    db.prepare('UPDATE media_sessions SET quality_tag=? WHERE id=?').run(quality_tag, sid);
   }
   res.json({ ok: true });
 });

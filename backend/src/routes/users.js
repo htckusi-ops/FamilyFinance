@@ -43,8 +43,12 @@ router.get('/:id/dashboard', (req, res) => {
   const recentTx = db.prepare(
     'SELECT * FROM transactions WHERE user_id=? ORDER BY created_at DESC LIMIT 10'
   ).all(uid);
+  // Ausgaben der letzten 7 Tage ohne Reflexion (für Reflexions-Prompt im Kind-Dashboard)
+  const pendingReflections = db.prepare(
+    "SELECT id, amount, description, created_at FROM transactions WHERE user_id=? AND type='expense' AND reflection IS NULL AND created_at >= datetime('now','-7 days') ORDER BY created_at DESC LIMIT 3"
+  ).all(uid);
 
-  res.json({ user, account, points, allowanceConfig, goals, rewardClaims, badges, fleaEarnings, recentTx });
+  res.json({ user, account, points, allowanceConfig, goals, rewardClaims, badges, fleaEarnings, recentTx, pendingReflections });
 });
 
 router.post('/', parentOnly, (req, res) => {

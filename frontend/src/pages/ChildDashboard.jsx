@@ -27,8 +27,9 @@ export default function ChildDashboard() {
   const [mediaUsage, setMediaUsage] = useState(null);
 
   const [settings, setSettings] = useState({});
-  const [transferModal, setTransferModal] = useState(null); // 'to_savings' | 'from_savings'
+  const [transferModal, setTransferModal] = useState(null);
   const [transferAmount, setTransferAmount] = useState('');
+  const [reflections, setReflections] = useState(null); // pending reflections from dashboard
 
   useEffect(() => {
     load();
@@ -45,6 +46,12 @@ export default function ChildDashboard() {
     setRewards(rewardsRes.data);
     setSettings(settingsRes.data);
     setMediaUsage(mediaRes.data);
+    setReflections(dashRes.data.pendingReflections || []);
+  }
+
+  async function saveReflection(txId, value) {
+    await api.patch(`/allowance/${user.id}/transactions/${txId}/reflect`, { reflection: value });
+    setReflections(r => r.filter(tx => tx.id !== txId));
   }
 
   async function claimReward(reward) {
@@ -276,6 +283,39 @@ export default function ChildDashboard() {
                 style={{ background: '#f0f7ff', borderRadius: 14, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: '1.4rem' }}>{b.icon}</span>
                 <span className="font-semibold text-sm">{b.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* V6: Reflexions-Prompt für neue Ausgaben (EU/OECD: financial attitudes) */}
+      {reflections && reflections.length > 0 && (
+        <div className="card mb-4" style={{ borderLeft: '4px solid #f59e0b' }}>
+          <h2 className="font-bold mb-1" style={{ fontSize: '1rem' }}>🤔 War das eine gute Ausgabe?</h2>
+          <p style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: 12, marginTop: 2 }}>
+            Kurz nachdenken hilft, beim nächsten Mal klüger zu entscheiden.
+          </p>
+          <div className="flex flex-col gap-3">
+            {reflections.map(tx => (
+              <div key={tx.id} style={{ background: '#fefce8', borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 2 }}>{tx.description}</div>
+                <div style={{ fontSize: '0.72rem', color: '#92400e', marginBottom: 8 }}>
+                  CHF {Math.abs(tx.amount).toFixed(2)} · {new Date(tx.created_at).toLocaleDateString('de-CH')}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[
+                    ['good',   '👍', 'Gut so!'],
+                    ['unsure', '🤔', 'Bin unsicher'],
+                    ['regret', '👎', 'Lieber gespart'],
+                  ].map(([val, icon, label]) => (
+                    <button key={val} onClick={() => saveReflection(tx.id, val)}
+                      style={{ flex: 1, background: '#fff', border: '1.5px solid #e0e7ef', borderRadius: 10, padding: '8px 4px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, textAlign: 'center' }}>
+                      <div style={{ fontSize: '1.3rem' }}>{icon}</div>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
