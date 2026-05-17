@@ -251,6 +251,9 @@ function migrate() {
       PRIMARY KEY (reward_id, user_id)
     )`);
   } catch {}
+  // Streak-Freeze: 1 kostenloser Freeze pro Monat (pädagogisch: Resilienz statt Scham bei Ausfall)
+  try { db.exec('ALTER TABLE points ADD COLUMN streak_freeze INTEGER DEFAULT 1'); } catch {}
+  try { db.exec('ALTER TABLE points ADD COLUMN streak_freeze_month TEXT'); } catch {}
 
   seedBadges();
   seedDefaultAdmin();
@@ -307,23 +310,23 @@ function seedDefaultSettings() {
 
 function seedBadges() {
   const badges = [
-    { key: 'first_save', name: 'Erstes Sparziel', description: 'Erstes Sparziel gespeichert', icon: '🐷' },
-    { key: 'goal_reached', name: 'Sparziel erreicht!', description: 'Ein Sparziel vollständig erreicht', icon: '🏆' },
-    { key: 'first_job', name: 'Erster Mini-Job', description: 'Ersten Mini-Job erledigt', icon: '⭐' },
-    { key: 'five_jobs', name: 'Fleissige Biene', description: '5 Mini-Jobs erledigt', icon: '🐝' },
-    { key: 'twenty_jobs', name: 'Jobprofi', description: '20 Mini-Jobs erledigt', icon: '💼' },
-    { key: 'streak_2', name: '2 Wochen Serie', description: '2 Wochen in Folge Mini-Jobs erledigt', icon: '🔥' },
-    { key: 'streak_4', name: 'Monatsheld', description: '4 Wochen in Folge aktiv', icon: '🦸' },
-    { key: 'flea_first_item', name: 'Flohmarkt-Starter', description: 'Ersten Artikel erfasst', icon: '🏷️' },
-    { key: 'flea_first_sale', name: 'Flohmarkt-Profi', description: 'Ersten Artikel verkauft', icon: '💰' },
-    { key: 'first_reward', name: 'Belohnung eingelöst', description: 'Erste Belohnung erhalten', icon: '🎁' },
-    { key: 'saver_100', name: 'Sparfuchs', description: 'CHF 100 gespart', icon: '🦊' },
+    { key: 'first_save',     name: 'Erstes Sparziel',    icon: '🐷', description: 'Du hast dein erstes Sparziel gesetzt — das zeigt, dass du weisst, wofür du sparst. Das ist der wichtigste Schritt zum Sparen!' },
+    { key: 'goal_reached',   name: 'Sparziel erreicht!', icon: '🏆', description: 'Du hast ein Sparziel vollständig erreicht. Das beweist: Geduld und Plan zahlen sich aus — eine Fähigkeit, die fürs ganze Leben gilt.' },
+    { key: 'first_job',      name: 'Erster Mini-Job',    icon: '⭐', description: 'Du hast deinen ersten Extra-Job erledigt und gezeigt, dass du Verantwortung übernehmen kannst. Gut gemacht!' },
+    { key: 'five_jobs',      name: 'Fleissige Biene',    icon: '🐝', description: 'Schon 5 Extra-Jobs erledigt! Du hast gelernt, dass regelmässiger Einsatz sich lohnt — genau wie im echten Arbeitsleben.' },
+    { key: 'twenty_jobs',    name: 'Jobprofi',            icon: '💼', description: '20 Extra-Jobs — das ist echte Ausdauer! Du hast bewiesen, dass du zuverlässig und engagiert bist. Das schätzen Menschen in jeder Lebenslage.' },
+    { key: 'streak_2',       name: '2 Wochen Serie',     icon: '🔥', description: '2 Wochen in Folge dabei geblieben! Regelmässigkeit ist eine Superkraft — wer durchhält, erreicht mehr als wer nur manchmal Gas gibt.' },
+    { key: 'streak_4',       name: 'Monatsheld',         icon: '🦸', description: '4 Wochen am Stück aktiv! Du hast gelernt, was Routine bedeutet — und dass aus kleinen Schritten grosse Leistungen werden.' },
+    { key: 'flea_first_item',name: 'Flohmarkt-Starter',  icon: '🏷️', description: 'Du hast deinen ersten Artikel für den Flohmarkt erfasst und einen Preis gesetzt. Das ist echter Unternehmersinn — du denkst darüber nach, was Dinge wert sind.' },
+    { key: 'flea_first_sale',name: 'Flohmarkt-Profi',    icon: '💰', description: 'Ersten Artikel verkauft! Du hast gelernt: Etwas, das du nicht mehr brauchst, hat für andere noch Wert. Das ist Wirtschaft im Kleinen — und Nachhaltigkeit dazu.' },
+    { key: 'first_reward',   name: 'Belohnung eingelöst',icon: '🎁', description: 'Erste Belohnung erhalten! Du hast Punkte gesammelt und dann entschieden, wann der richtige Moment zum Einlösen ist — das nennt man Impulskontrolle.' },
+    { key: 'saver_100',      name: 'Sparfuchs',          icon: '🦊', description: 'CHF 100 gespart! Das ist eine echte Leistung. Du hast bewiesen, dass du auch auf kurzfristige Wünsche verzichten kannst, wenn du ein grösseres Ziel vor Augen hast.' },
   ];
 
-  const insert = db.prepare(
-    'INSERT OR IGNORE INTO badges (key, name, description, icon) VALUES (?,?,?,?)'
+  const upsert = db.prepare(
+    'INSERT INTO badges (key, name, description, icon) VALUES (?,?,?,?) ON CONFLICT(key) DO UPDATE SET name=excluded.name, description=excluded.description, icon=excluded.icon'
   );
-  for (const b of badges) insert.run(b.key, b.name, b.description, b.icon);
+  for (const b of badges) upsert.run(b.key, b.name, b.description, b.icon);
 }
 
 function seedDefaultAdmin() {

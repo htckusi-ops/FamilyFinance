@@ -1,346 +1,175 @@
-# Pädagogische Analyse – FamilyFinance
+# Pädagogische Grundlagen der FamilyFinance-App
 
-Dieses Dokument vergleicht die Funktionen von FamilyFinance mit dem aktuellen Stand der Erziehungs- und Entwicklungspsychologie. Wo die App von Forschungsempfehlungen abweicht oder diese ergänzt, wird dies ausdrücklich vermerkt.
-
----
-
-## Theoretische Grundlage
-
-FamilyFinance orientiert sich primär an der **Selbstbestimmungstheorie (SDT)** nach Deci & Ryan (1985, 2000). Kinder handeln nachhaltiger aus drei inneren Bedürfnissen heraus:
-
-- **Kompetenzerleben** – etwas bewirken und daran wachsen
-- **Autonomie** – selbst entscheiden dürfen
-- **Zugehörigkeit** – Teil der Familie sein
-
-Extrinsische Anreize (Geld, Punkte, Abzeichen) können diese Motivation stärken *oder* untergraben. Der sogenannte **Korrumpierungseffekt** (Overjustification Effect) zeigt: Wird eine Aktivität, die ein Kind gerne macht, mit Belohnungen verknüpft, kann die innere Freude langfristig sinken (Lepper, Greene & Nisbett, 1973).
-
-Die Metaanalyse von **Deci, Koestner & Ryan (1999)** über 128 Studien belegt dies quantitativ:
-- Erwartete, greifbare Belohnungen untergraben die innere Motivation messbar (Effektgrösse *d* = −0.28 bis −0.40)
-- Der Effekt ist bei Kindern **stärker** als bei Erwachsenen
-- Verbales Lob (informatives Feedback) hingegen *stärkt* die innere Motivation (*d* = +0.31)
-
-**Schlussfolgerung für die App:** Punktesysteme und Belohnungen sind wertvoll, solange sie nicht die Hauptmotivation für Alltagstätigkeiten werden. Die Trennung von Haushaltspflichten und Extra-Aufgaben ist daher strukturell wichtig.
+*Letzte Überprüfung: Mai 2026*
+*Basierend auf: DJI-Expertise 2025, AWMF-Leitlinie S2k Nr. 027-075 (2023), EU/OECD Financial Competence Framework (2023), AAP Policy Statement (2025/2026), Selbstbestimmungstheorie (Deci & Ryan), Gamification-Forschung*
 
 ---
 
-## Taschengeld-Verwaltung
+## Leitprinzipien
 
-### Forschungsstand
+Die App orientiert sich an drei wissenschaftlich fundierten Grundprinzipien:
 
-Taschengeld gilt als eines der wirksamsten Mittel zur Entwicklung finanzieller Kompetenz – wenn es *richtig* eingesetzt wird.
+1. **Autonomie mit Leitplanken** — Kinder erhalten echte Entscheidungsfreiheit innerhalb von Eltern-definierten Grenzen (Selbstbestimmungstheorie, Deci & Ryan)
+2. **Intrinsische Motivation schützen** — Belohnungen ergänzen, aber ersetzen nicht die innere Überzeugung
+3. **Realitätsnähe** — Finanzkonzepte und Medienregeln sollen der realen Welt entsprechen
 
-**Garyn-Tal (2024)** untersuchte 206 Eltern-Kind-Paare (12–16 Jahre) und stellte fest: Die meisten Kinder mit Taschengeld erhalten keine begleitende Finanzerziehung. Ohne elterliche Anleitung bleibt der Lerneffekt gering. Die App adressiert dies durch sichtbare Transaktionsverläufe, Sparziele und die Finanzübersicht, die Gesprächsanlässe schafft.
+---
 
-**Pro Juventute Schweiz (offizielle Empfehlungen, aktualisiert 2023)** empfiehlt:
+## PRO: Was die App pädagogisch richtig macht
 
-| Alter | Betrag | Rhythmus |
+### Finanzkompetenz
+
+**1. Regelmässiges Taschengeld — korrekt umgesetzt**
+Automatisches, verlässliches Auszahlen entspricht exakt der [DJI-Empfehlung (Chabursky & Langmeyer, 2025)](https://www.dji.de/ueber-uns/projekte/projekte/taschengeld-und-gelderziehung.html): Taschengeld soll *unabhängig vom Verhalten* und *regelmässig* fliessen. Entscheidend ist nicht die Höhe, sondern die Verlässlichkeit.
+
+**2. Altersgerechte Auszahlungsintervalle**
+Wöchentlich für Jüngere, monatlich für Ältere — laut DJI können Kinder unter 10 Jahren maximal 7–10 Tage vorausplanen.
+
+**3. Sparkonto mit Zins und Sparziel-Fortschritt**
+- Macht Zinseszins früh erfahrbar ([EU/OECD Financial Competence Framework 2023](https://finance.ec.europa.eu/publications/commission-and-oecd-infe-publish-joint-framework-children-and-youth_en))
+- Fortschrittsbalken aktivieren das *Goal-Gradient-Prinzip*: Motivation steigt je näher das Ziel rückt
+
+**4. Trennung Pflicht-Jobs vs. Extra-Jobs**
+Grundlegende Haushaltspflichten sollen **nicht monetarisiert** werden. Extra-Leistungen können honoriert werden. Die App bildet beide Kategorien korrekt ab — wichtig ist die richtige Befüllung durch Eltern.
+Quelle: [IFP Familienhandbuch — Kinder im Haushalt](https://www.familienhandbuch.de/babys-kinder/erziehungsfragen/allgemein/istessinnvolldasskinderimhaushaltmithelfen.php)
+
+**5. Kinder-Autonomie mit Eltern-Freischaltung**
+Eigene Kinder-Ansicht + selbstständiger Transfer zwischen Konto und Sparkonto (von Eltern freischaltbar) ist ein Stufenmodell wachsender Selbstständigkeit. Die [Selbstbestimmungstheorie (Deci & Ryan)](https://www.pedocs.de/volltexte/2017/11173/pdf/ZfPaed_1993_2_Deci_Ryan_Die_Selbstbestimmungstheorie_der_Motivation.pdf) identifiziert Autonomieerfahrungen als zentrales Bedürfnis für intrinsische Motivation.
+
+**6. Flohmarkt-Feature: Hands-on-Unternehmertum**
+Kinder setzen selbst Preise, teilen Erlöse anteilsmässig. Wenn Kinder *selbst verdientes* Geld einem realen Aufwand zuordnen, entwickeln sie Respekt vor Arbeit und Preisfindungskompetenz.
+Quelle: [MDPI — Financial Literacy and Gen Z's Entrepreneurship Interest (2025)](https://www.mdpi.com/2227-7072/13/3/171)
+
+### Medienzeit
+
+**7. Differenzierung aktiver und passiver Medienzeit**
+Aktive Medienzeit nur halb anzurechnen ist wissenschaftlich gut begründet. Die [AAP (2025)](https://publications.aap.org/pediatrics/article/157/2/e2025075320/206129/Digital-Ecosystems-Children-and-Adolescents-Policy) betont: Qualität der Mediennutzung ist entscheidender als reine Quantität.
+
+**8. Standardlimits orientieren sich an der AWMF-Leitlinie**
+
+| Altersgruppe | AWMF S2k (2023) | App-Standard |
 |---|---|---|
-| 6 Jahre | CHF 3/Woche | wöchentlich |
-| 8–9 Jahre | CHF 4–5/Woche | wöchentlich |
-| 10–11 Jahre | CHF 6–8/Woche | wöchentlich oder 2-wöchentlich |
-| 12–13 Jahre | CHF 20–30/Monat | monatlich |
-| 14–15 Jahre | CHF 40–60/Monat | monatlich (inkl. Jugendlohn-Übergang) |
-| 16+ Jahre | CHF 80–110/Monat | monatlich (Jugendlohn: Kino, Kleider, Ausgang) |
+| Vorschule (3–6 J.) | max. 30 min/Tag | 30 min ✓ |
+| Schule (6–13 J.) | 30–60 min/Tag | 60 min ✓ |
+| Teenager | bis 120 min vertretbar | 120 min ✓ |
 
-**Wichtig (Pro Juventute):** Taschengeld soll *nicht* an Haushaltsaufgaben geknüpft sein. Haushaltspflichten gehören zur Familiengemeinschaft – dafür gibt es den *Jugendlohn* (ab ca. 12 Jahren) als separates Konzept.
+Quelle: [AWMF-Leitlinie S2k Nr. 027-075 (2023)](https://register.awmf.org/de/leitlinien/detail/027-075)
 
-### Abgleich mit der App
+**9. Gemeinsame Medienzeit-Sessions**
+Die AAP (2025/2026) betont *Co-Viewing* als positiv — gemeinsame Medienerfahrungen fördern Kommunikation und soziale Kompetenz.
 
-| Aspekt | Umsetzung | Bewertung |
-|---|---|---|
-| Regelmässige Auszahlung | ✅ Automatisch (wöchentlich/monatlich) | Optimal |
-| Sichtbarer Geldfluss | ✅ Transaktionsverlauf | Optimal |
-| Sparziele | ✅ Mit Fortschrittsbalken | Gut |
-| Zinslernen | ✅ Konfigurierbar | Gut (mit Vorsicht, siehe unten) |
-| Trennung Taschengeld / Aufgaben | ✅ Strukturell getrennt | Optimal |
-| Begleitende Erklärungen | ⚠️ Nicht in App integriert | Muss in der Familie stattfinden |
-
-**Empfehlung:** Zinssätze realitätsnah halten (0,5–2 %). Die App zeigt ab 3 % keinen Warnhinweis – dies wäre eine sinnvolle Ergänzung, um falsche Erwartungen zu vermeiden.
+**10. Eltern-Dashboard schafft Gesprächsanlässe**
+Die [AAP 5 C's of Media Use (2026)](https://www.edsurge.com/news/2026-02-05-new-aap-screen-time-recommendations-focus-less-on-screens-more-on-family-time) benennt *Conversation* als wichtigstes Element gesunder Mediennutzung.
 
 ---
 
-## Haushaltspflichten
+## CONTRA: Was pädagogisch verbessert werden sollte
 
-### Forschungsstand
+### 1. Punktabzug als Verhaltensstrafe — grösstes Problem ⚠️
+*Status: umgesetzt (V1)*
 
-**Rilling et al. (2002)** und Folgestudien zeigen: Kinder, die regelmässig zu Hause mithelfen, entwickeln stärkere prosoziale Einstellungen und höheres Verantwortungsbewusstsein – *unabhängig davon, ob sie dafür entlohnt werden*.
+Vordefinierte Strafgründe (z.B. "TV-Zeit überschritten") verbinden das Belohnungssystem direkt mit Bestrafung für normales Fehlverhalten:
+- Die [Selbstbestimmungstheorie](https://www.pedocs.de/volltexte/2017/11173/pdf/ZfPaed_1993_2_Deci_Ryan_Die_Selbstbestimmungstheorie_der_Motivation.pdf) zeigt: Externe Bestrafung untergräbt intrinsische Motivation (*Korrumpierungseffekt*)
+- Schulden-Erleben durch Punktabzug kann permanentes Defizitgefühl erzeugen
+- "TV-Zeit überschritten" ist Doppelbestrafung (Alarm + Punktabzug)
 
-Die Verknüpfung von Haushaltspflichten mit Geld- oder Punktbelohnungen birgt laut SDT das Risiko, dass Kinder diese als „Job" statt als Beitrag zur Familie betrachten. Einige Längsschnittstudien deuten darauf hin, dass bezahlte Haushaltsaufgaben die Bereitschaft zu freiwilliger Hilfe langfristig *reduzieren* können (Gneezy & Rustichini, 2000 – „A Fine Is a Price").
+Quelle: [MindYourLife — Korrumpierungseffekt](https://www.mindyourlife.de/der-korrumpierungseffekt/)
 
-### Abgleich mit der App
+### 2. Streak-Mechanismus — Potenzial für Versagensangst
+*Status: umgesetzt (V2 — Streak Freeze + positives Reframing)*
 
-| Aspekt | Umsetzung | Bewertung |
-|---|---|---|
-| Pflichten von Extra-Aufgaben getrennt | ✅ `job_type = duty / extra` | Optimal |
-| Punkte für Pflichten optional (Standard: 0) | ✅ Konfigurierbar | Optimal |
-| Visuelle Trennung in der Oberfläche | ✅ Separate Abschnitte | Gut |
-| Positives Quittieren ohne Punkte | ✅ Eltern-Klick schickt Bestätigung | Gut |
+Streaks erhöhen kurzfristig die Compliance, erzeugen bei Unterbrechung aber *Scham, Angst und Burnout* — besonders bei Kindern.
+Quelle: [The Psychology of Streaks: Why They Work (And When They Backfire)](https://blog.cohorty.app/the-psychology-of-streaks-why-they-work-and-when-they-backfire/)
 
-**Empfehlung:** Bei der Ersteinrichtung sollte die Familie besprechen, welche Aufgaben zur Gemeinschaft gehören (keine Punkte) und welche als freiwillige Extra-Leistung gelten.
+### 3. Pflicht-Jobs mit Punkten verbinden — Risiko der Korrumpierung
+*Status: umgesetzt (V3 — Warnung implementiert)*
 
----
+Das [DJI](https://www.dji.de/veroeffentlichungen/aktuelles/news/article/ab-wann-sollten-kinder-wie-viel-taschengeld-bekommen.html) warnt: Wenn Haushaltspflichten an Belohnungen geknüpft werden, lernen Kinder sie als *Lohnarbeit*.
 
-## Wochen-Serie (früher: „Streak")
+### 4. Medienzeit-Limits ohne Wochentag-Differenzierung
+*Status: offen (V5)*
 
-### Forschungsstand
+Die [AWMF (2023)](https://register.awmf.org/assets/guidelines/027_D_Ges_fuer_Kinderheilkunde_und_Jugendmedizin/027-075eltern_S2k_Praevention-dysregulierten-Bildschirmmediengebrauchs-Kinder-Jugendliche_2024-11.pdf) empfiehlt: Wochenenden können grosszügiger sein, Schultage kürzer.
 
-Serien-Mechaniken aus Lern-Apps (Duolingo u.a.) sind ein zweischneidiges Schwert:
+### 5. Keine Reflexions-Komponente beim Geldausgeben
+*Status: offen (V6)*
 
-**Dichev & Dicheva (2017)** kommen in ihrer kritischen Übersicht über Gamification in der Bildung zum Schluss: Die empirische Evidenz ist zu dünn für eindeutige Empfehlungen. Serien-Mechaniken können motivieren – erzeugen aber bei einem Teil der Nutzer Stress und Versagensangst, wenn die Serie zu reissen droht.
+Das [EU/OECD-Framework (2023)](https://www.oecd.org/en/publications/financial-competence-framework-for-children-and-youth-in-the-european-union_bf059471-en.html) betont *financial attitudes* (Einstellungen und Wertehaltungen) als gleichwertig mit Finanzkompetenz-Wissen.
 
-**Für Kinder spezifisch:** Kinder mit perfektionistischer Tendenz können unter Serien-Druck leiden. Im Ferienfall oder bei Krankheit entsteht ein Dilemma.
+### 6. Zinssatz ohne Realitätsbezug
+*Status: umgesetzt (V4 — Hinweis implementiert)*
 
-Das **deutsche Wort „Serie"** wurde bewusst gewählt (statt „Streak"), um den Spielcharakter zu reduzieren und die Bedeutung als natürliche Folge – nicht als Pflicht – zu unterstreichen.
+Zu hohe Fantasiezinsen (technisch unbegrenzt) verfälschen das Bild des realen Finanzmarkts. Reale Kindersparkonto-Zinsen: 1–3% p.a.
 
-### Abgleich mit der App
+### 7. Badges ohne Kompetenz-Text
+*Status: umgesetzt (V9 — erweiterte Beschreibungen)*
 
-| Aspekt | Umsetzung | Bewertung |
-|---|---|---|
-| Serie abschaltbar | ✅ `show_streak`-Einstellung | Optimal |
-| Keine negativen Konsequenzen bei unterbrochener Serie | ✅ Nur Anzeige, keine Strafe | Gut |
-| Keine automatische Benachrichtigung bei Serienbruch | ✅ Nicht implementiert | Gut |
-| Standardmässig aktiv | ⚠️ Standard = aktiv | Könnte für Jüngere (<10) besser auf inaktiv stehen |
+Forschung ([Frontiers in Education, 2024](https://www.frontiersin.org/journals/education/articles/10.3389/feduc.2024.1429452/full)): Badges haben dann positiven Motivationseffekt, wenn sie mit *Kompetenzinformationen* verknüpft sind — nicht nur "Du hast X gemacht", sondern "weil du Y gelernt hast".
 
-**Empfehlung:** Für Kinder unter 10 Jahren Serie standardmässig deaktivieren. Eindeutige Familienabsprache: „Kein Problem, wenn die Serie bricht."
+### 8. Keine Gesprächs-Prompts für Eltern-Kind-Dialog
+*Status: offen (V7)*
 
----
+Die AAP (2025/2026) macht den Eltern-Kind-Dialog zur wichtigsten Variable gesunder Mediennutzung.
 
-## Abzeichen (früher: „Badges")
+### 9. Qualitäts-Tagging für Medienzeit fehlt
+*Status: offen (V8)*
 
-### Forschungsstand
-
-Abzeichen-Systeme haben laut Forschung gemischte Wirkung:
-
-- **Positiv:** Meilensteine sichtbar machen, Leistungen ohne direkte Geldzahlung anerkennen
-- **Negativ:** „Gamification-Treadmill" – mechanisches Sammeln ohne echten Bedeutungsgehalt; Vergleich unter Geschwistern kann Druck erzeugen (Dichev & Dicheva, 2017)
-
-Abzeichen wirken laut SDT vor allem dann positiv, wenn sie *informativen Charakter* haben (zeigen, was man geleistet hat) und nicht *kontrollierenden Charakter* (als Lockmittel für Verhalten).
-
-### Abgleich mit der App
-
-| Aspekt | Umsetzung | Bewertung |
-|---|---|---|
-| Abzeichen abschaltbar | ✅ `show_badges`-Einstellung | Optimal |
-| Keine negativen Abzeichen | ✅ Nur positive Meilensteine | Gut |
-| Keine familienweite Rangliste | ✅ Nur pro Kind | Gut |
-| Abzeichen als Gesprächsanlass | ⚠️ Nicht aktiv unterstützt | Eltern müssen aktiv werden |
+AAP-Ansatz "quality over quantity": Kategorisierung der Sessions (Lernen/Kreativ/Gemeinsam/Spielen) würde Statistik aussagekräftiger machen.
 
 ---
 
-## Punkte-Zeitachse (Wünsche)
+## Umsetzungsstatus der Verbesserungen
 
-### Forschungsstand
-
-Sparverzögerung (Delayed Gratification) gilt seit den Marshmallow-Studien von Mischel (1972–1989) als wichtige Kompetenz. Die Replikationsstudie von **Watts, Duncan & Quan (2018)** relativiert jedoch:
-
-- Der Effekt ist deutlich kleiner als ursprünglich angenommen (ca. ⅓ der Originalgrösse)
-- Sozioökonomischer Hintergrund und elterliche Unterstützung sind stärkere Prädiktoren als Willenskraft
-
-**Für die App:** Die Punkte-Zeitachse visualisiert Fortschritt zu Wünschen – sie sollte kein „Willenstest" sein, sondern ein Planungswerkzeug. Eltern können durch Gespräche und realistische Punktekalibrierung die Erreichbarkeit sicherstellen.
-
-### Abgleich mit der App
-
-| Aspekt | Umsetzung | Bewertung |
-|---|---|---|
-| Überlappungsfreies Layout | ✅ Flussbasiertes Design | Gut |
-| Fortschrittsbalken zum nächsten Wunsch | ✅ Inline angezeigt | Gut |
-| Realistische Erreichbarkeit | ⚠️ Hängt von Elternkonfiguration ab | Familienaufgabe |
-| Kleine und grosse Wünsche mischbar | ✅ Beliebige Punktehöhen | Gut |
-
-**Empfehlung:** Wünsche so kalibrieren, dass ein mittlerer Wunsch 2–4 Wochen konsequenten Einsatz erfordert. Sehr grosse Wünsche (viele Monate) demotivieren.
+| # | Beschreibung | Status | Priorität |
+|---|---|---|---|
+| V1 | Straf-Punktabzug entschärfen — Presets ersetzen, Warnung verbessern | ✅ Umgesetzt | Hoch |
+| V2 | Streak-Freeze + positives Reframing bei Unterbrechung | ✅ Umgesetzt | Hoch |
+| V3 | Warnung bei Pflicht-Jobs mit Punkten > 0 | ✅ Umgesetzt | Hoch |
+| V4 | Zinssatz-Plausibilitätshinweis (1–3% p.a. Referenz) | ✅ Umgesetzt | Mittel |
+| V5 | Schultag/Wochenende-Differenzierung für Medienzeit-Limits | 🔲 Offen | Mittel |
+| V6 | Reflexions-Prompt nach Ausgaben (für Kinder) | 🔲 Offen | Mittel |
+| V7 | Wöchentliche Gesprächs-Impulse für Eltern | 🔲 Offen | Niedrig |
+| V8 | Qualitäts-Tagging für Medienzeit-Sessions | 🔲 Offen | Niedrig |
+| V9 | Badges mit Kompetenz-Text (nicht nur Trophäe) | ✅ Umgesetzt | Mittel |
+| V10 | Co-Viewing als positive Option rahmen | 🔲 Offen | Niedrig |
 
 ---
 
-## Gemeinsame Wünsche (`require_all`)
+## Quellenverzeichnis
 
-### Forschungsstand
+### Taschengeld und Finanzkompetenz
+- [DJI — Taschengeld und Gelderziehung (Chabursky & Langmeyer, 2025)](https://www.dji.de/ueber-uns/projekte/projekte/taschengeld-und-gelderziehung.html)
+- [DJI — Ab wann sollten Kinder wie viel Taschengeld bekommen?](https://www.dji.de/veroeffentlichungen/aktuelles/news/article/ab-wann-sollten-kinder-wie-viel-taschengeld-bekommen.html)
+- [EU/OECD Financial Competence Framework for Children and Youth (2023)](https://finance.ec.europa.eu/publications/commission-and-oecd-infe-publish-joint-framework-children-and-youth_en)
+- [OECD — Financial Competence Framework for Children and Youth in the EU](https://www.oecd.org/en/publications/financial-competence-framework-for-children-and-youth-in-the-european-union_bf059471-en.html)
+- [Jugend und Finanzen — Sparen und Ausgeben will gelernt sein](https://www.jugend-und-finanzen.de/eltern/finanzbildung-im-elternhaus/sparen-und-ausgeben-will-gelernt-sein-das-taschengeld-hilft-dabei)
+- [Bankenverband — Jugendstudie 2024: Finanzverhalten](https://bankenverband.de/finanzbildung/jugendstudie-2024-finanzverhalten-und-geldanlage-der-jungen-generation)
+- [IFP Familienhandbuch — Kinder im Haushalt](https://www.familienhandbuch.de/babys-kinder/erziehungsfragen/allgemein/istessinnvolldasskinderimhaushaltmithelfen.php)
 
-**Johnson & Johnson (seit den 1970er-Jahren, Übersicht 2009)** haben in über 40 Jahren Forschung zur Kooperativen Lerntheorie gezeigt:
+### Gamification, Punkte, Badges, Streaks
+- [Frontiers in Education — Validating gamified learning: impact of digital badges on motivation (2024)](https://www.frontiersin.org/journals/education/articles/10.3389/feduc.2024.1429452/full)
+- [Springer — The impact of educational gamification on cognition, emotions, and motivation: RCT (2025)](https://link.springer.com/article/10.1007/s40692-025-00366-x)
+- [ResearchGate — Einsatz von Gamification zum Fördern intrinsischer Motivation](https://www.researchgate.net/publication/336414357_Einsatz_von_Gamification_zum_Fordern_intrinsischer_Motivation_-_Aktueller_Stand_der_Forschung_und_Herleitung_eines_Forschungsmodells)
+- [Yu-kai Chou — Streak Design: Motivation Without Burnout](https://yukaichou.com/gamification-analysis/streak-design-gamification-motivation-burnout/)
+- [The Psychology of Streaks: Why They Work (And When They Backfire)](https://blog.cohorty.app/the-psychology-of-streaks-why-they-work-and-when-they-backfire/)
 
-- **Positive Abhängigkeit** (alle müssen zum Ziel beitragen) fördert prosoziales Verhalten, gegenseitige Unterstützung und Hilfsbereitschaft unter Geschwistern
-- **Choi, Johnson & Johnson (2011)** zeigen in einer Stichprobe von 217 Schulkindern: Kooperative Strukturen → stärkere gegenseitige Abhilfe, weniger Aggressivität
+### Medienzeit-Management
+- [AWMF-Leitlinie S2k Nr. 027-075 — Prävention dysregulierten Bildschirmmediengebrauchs (2023)](https://register.awmf.org/de/leitlinien/detail/027-075)
+- [AWMF Medienleitlinie für Eltern (2024)](https://register.awmf.org/assets/guidelines/027_D_Ges_fuer_Kinderheilkunde_und_Jugendmedizin/027-075eltern_S2k_Praevention-dysregulierten-Bildschirmmediengebrauchs-Kinder-Jugendliche_2024-11.pdf)
+- [AAP — Digital Ecosystems, Children, and Adolescents: Policy Statement (2025/2026)](https://publications.aap.org/pediatrics/article/157/2/e2025075320/206129/Digital-Ecosystems-Children-and-Adolescents-Policy)
+- [AAP — Understanding the New AAP Digital Media Guidelines](https://www.aap.org/en/patient-care/media-and-children/center-of-excellence-on-social-media-and-youth-mental-health/understanding-the-new-AAP-digital-media-guidelines/)
+- [New AAP Screen Time Recommendations Focus Less on Screens, More on Family Time (2026)](https://www.edsurge.com/news/2026-02-05-new-aap-screen-time-recommendations-focus-less-on-screens-more-on-family-time)
+- [Klicksafe — Bildschirm- und Medienzeit: Was ist für Kinder in Ordnung?](https://www.klicksafe.eu/en/bildschirm-und-medienzeit-was-ist-fuer-kinder-in-ordnung)
+- [Leitfaden aktive vs. passive Bildschirmzeit | Kidslox](https://kidslox.com/de/guide-to/active-screen-time-vs-passive/)
 
-Das `require_all`-Feature setzt genau diese **positive Interdependenz** um: Jedes beteiligte Kind hat einen Anreiz, die anderen zu unterstützen und anzufeuern.
+### Autonomie und Motivationspsychologie
+- [Deci, E.L. & Ryan, R.M. — Selbstbestimmungstheorie der Motivation (PeDocs)](https://www.pedocs.de/volltexte/2017/11173/pdf/ZfPaed_1993_2_Deci_Ryan_Die_Selbstbestimmungstheorie_der_Motivation.pdf)
+- [Psychologische Grundbedürfnisse nach Deci und Ryan | ABB Seminare](https://www.abb-seminare.de/blog/psychologische-grundbeduerfnisse)
+- [Campus Schulmanagement — Warum Belohnungssysteme dem Unterricht häufig schaden (Murayama)](https://www.campus-schulmanagement.de/magazin/warum-belohnungssysteme-dem-unterricht-haeufig-schaden-kou-murayama)
+- [MindYourLife — Der Korrumpierungseffekt: Extrinsische vs. intrinsische Belohnung](https://www.mindyourlife.de/der-korrumpierungseffekt/)
+- [NeuroNation — Belohnungen: Wann sie gefährlich werden](https://www.neuronation.com/science/de/belohnungen-wann-sie-gefahrlich-werden/)
+- [Cornelsen Magazin — Belohnungssysteme im Unterricht: Sinn oder Unsinn?](https://www.cornelsen.de/magazin/beitraege/belohnungssysteme-im-unterricht)
 
-### Abgleich mit der App
-
-| Aspekt | Umsetzung | Bewertung |
-|---|---|---|
-| Gemeinsame Wünsche möglich | ✅ `require_all`-Schalter | Sehr gut |
-| Fortschritt aller Beteiligten sichtbar | ✅ Pro-Kind-Balken | Gut |
-| Einlösung durch einen stellvertretend | ✅ Erster kann beantragen | Sinnvoll |
-| Nur für ausgewählte Kinder | ✅ Zielgruppen-Chips | Flexibel |
-
-**Empfehlung:** Gemeinsame Wünsche sparsam einsetzen und nur für Dinge, die tatsächlich alle betreffen (Familienausflug, gemeinsames Spielzeug). Zu viele gemeinsame Wünsche können Frustration erzeugen, wenn ein Kind konstant „wartet".
-
----
-
-## Flohmarkt
-
-### Forschungsstand
-
-Praktische Markterfahrung gilt als eine der wirksamsten Methoden der wirtschaftlichen Früherziehung. Das **Federal Reserve Education Program „A Yen to Trade"** (Klassenzimmer-Tauschmarkt) zeigt, dass Kinder durch eigene Transaktionserfahrung Konzepte wie Angebot/Nachfrage, Preisfindung und gegenseitigen Vorteil von Handel intuitiv verstehen.
-
-**Oosterbeek, Sloof & van de Kuilen (2004)** belegen: Handelssimulationen sind effektiver als reine Wissensvermittlung für das Verständnis von Marktmechanismen.
-
-Die **Tausch-Option** (Ware gegen Ware, optional mit Aufpreis) bildet reale Marktdynamik noch authentischer ab als reine Geldtransaktionen.
-
-### Abgleich mit der App
-
-| Aspekt | Umsetzung | Bewertung |
-|---|---|---|
-| Echte Erlöse auf Kinderkonto | ✅ Direkte Buchung | Optimal |
-| Preisfindung durch Kind möglich | ✅ Richtpreis frei eingebbar | Gut |
-| Tausch als Verkaufsform | ✅ Mit Aufpreis-Option | Sehr authentisch |
-| Barcode-Suche | ✅ Open Food Facts / Open Library | Praktisch, spart Zeit |
-| QR-Etiketten | ✅ Selbst gedruckt | Stärkt Eigenverantwortung |
-| Für unter 9-Jährige | ⚠️ App-Bedienung komplex | Starke Elternbegleitung nötig |
-
----
-
-## Digitales Geld vs. physisches Geld
-
-### Forschungsstand
-
-Der **Money and Pensions Service (UK, 2024)** stellte in einer Übersichtsstudie fest: Die Forschung zu digitalem Geld bei Kindern ist noch dünn, aber ein klares Muster zeichnet sich ab:
-
-- Digitales Geld fühlt sich „weniger real" an als Bargeld
-- Kinder unter 10 Jahren können digitale und physische Geldkonzepte oft nicht klar trennen
-- Mobiles Bezahlen erhöht die Tendenz zu Impulskäufen (Spendception, *Behavioral Sciences*, 2025)
-
-**Empfehlung für Eltern:** Die App als Ergänzung zu physischem Bargeld einsetzen, nicht als Ersatz. Besonders bei jüngeren Kindern parallel echte Münzen/Noten verwenden.
-
-### Abgleich mit der App
-
-| Aspekt | Umsetzung | Bewertung |
-|---|---|---|
-| Nur digitales Geld | ⚠️ Kein physischer Bezug | Bewusste Einschränkung |
-| Transaktionen sichtbar und nachvollziehbar | ✅ Vollständiger Verlauf | Gut |
-| Bestätigung vor Löschvorgängen | ✅ Immer Bestätigungsdialog | Schützt vor Impulsaktionen |
-
----
-
-## Benachrichtigungen (Telegram / Signal / Threema)
-
-### Forschungsstand
-
-**Elterliche Involvierung** ist laut Garyn-Tal (2024) der wichtigste Faktor für den Lernerfolg von Kindern mit Taschengeld. Benachrichtigungen unterstützen dies – mit einem wichtigen Vorbehalt:
-
-**Grolnick & Pomerantz (2009)** warnen vor **übermässiger Kontrolle**: Elterliche Überwachung, die das Kind als kontrollierend erlebt, schadet der Autonomieentwicklung. Benachrichtigungen über *bedeutsame Ereignisse* (Wunschantrag, Auszahlung) sind sinnvoll; lückenlose Überwachung aller Punkte-Transaktionen wäre kontraproduktiv.
-
-Die Wahl von **Signal und Threema** als datenschutzfreundliche Alternativen zu Telegram signalisiert der Familie ausserdem, dass Familiendaten privat bleiben – ein eigenständiger Erziehungswert.
-
-### Abgleich mit der App
-
-| Aspekt | Umsetzung | Bewertung |
-|---|---|---|
-| Benachrichtigungen optional | ✅ Pro Elternteil konfigurierbar | Gut |
-| Nur relevante Events | ✅ Wunschantrag, Auszahlung, Punkte | Gut |
-| Datenschutzfreundliche Kanäle | ✅ Signal, Threema verfügbar | Sehr gut |
-| Keine Echtzeit-Überwachung | ✅ Keine Live-Tracking-Funktion | Gut |
-
----
-
-## Empfehlungen nach Altersgruppe
-
-### 5–8 Jahre (Frühe Kindheit)
-**Entwicklungsstand:** Konkretes Denken, kurze Zeitperspektive, starkes Gerechtigkeitsgefühl, Bargeld besser greifbar als digitales Geld.
-
-| Feature | Empfehlung |
-|---|---|
-| Taschengeld | ✅ Wöchentlich, kleiner Betrag (CHF 3–5), parallel Münzen anfassen |
-| Haushaltspflichten | ✅ Einfache Aufgaben, positives Quittieren statt Punkte |
-| Extra-Aufgaben | ⚠️ Maximal 2–3, sofortige sichtbare Belohnung |
-| Punkte / Serie | ❌ Zu abstrakt, besser weglassen |
-| Abzeichen | ❌ Bedeutung noch schwer verständlich |
-| Sparziele | ⚠️ Nur sehr kurzfristig (max. 4 Wochen) |
-| Gemeinsame Wünsche | ❌ Gegenseitige Abhängigkeit überfordert |
-| Flohmarkt | ⚠️ Nur mit starker Elternbegleitung |
-
-### 9–12 Jahre (Mittlere Kindheit)
-**Entwicklungsstand:** Logisches Denken, längere Zeitperspektive, sozialer Vergleich wichtig, Gerechtigkeitssinn sehr ausgeprägt.
-
-| Feature | Empfehlung |
-|---|---|
-| Taschengeld | ✅ Monatlich möglich, Kontoübersicht zeigen |
-| Haushaltspflichten | ✅ Mehr Verantwortung, weniger Kontrolle |
-| Extra-Aufgaben | ✅ Vielfalt, freie Wahl |
-| Punkte / Serie | ⚠️ Optional, kein Druck, Serie abschaltbar |
-| Abzeichen | ⚠️ Sparsam, bedeutungsvolle Meilensteine |
-| Sparziele | ✅ Mittelfristig (1–3 Monate) |
-| Gemeinsame Wünsche | ✅ Gut geeignet für Geschwisterprojekte |
-| Flohmarkt | ✅ Sehr geeignet, eigene Preisgestaltung |
-| Zinssimulation | ⚠️ Einführen, einfach erklären |
-
-### 13+ Jahre (Jugendalter)
-**Entwicklungsstand:** Abstraktes Denken, Identitätsfindung, Autonomiebedürfnis hoch, können App selbständig bedienen.
-
-| Feature | Empfehlung |
-|---|---|
-| Taschengeld | ✅ Monatlich, Budgetverantwortung übergeben |
-| Haushaltspflichten | ✅ Als Mitverantwortung, nicht als Auftrag |
-| Extra-Aufgaben | ✅ Optional, eigenverantwortlich |
-| Punkte / Serie | ❌ Kann kindisch wirken, Akzeptanz prüfen |
-| Abzeichen | ❌ Meist nicht mehr motivierend |
-| Zinssimulation | ✅ Als reales Lernmoment (Zinseszins) |
-| Flohmarkt | ✅ Eigenständig, Eltern im Hintergrund |
-| Finanzübersicht | ✅ Gemeinsam mit Eltern anschauen |
-
----
-
-## Implementierte Pädagogik-Anpassungen (Zusammenfassung)
-
-Die folgenden Anpassungen wurden direkt im Code umgesetzt:
-
-| Nr. | Massnahme | Hintergrund |
-|---|---|---|
-| 1 | Haushaltspflichten konfigurierbar (Standard: 0 Punkte) | SDT: Trennung Pflicht/Anreiz |
-| 2 | Klare visuelle Trennung Pflichten / Extra-Aufgaben | Vermeidet Rollenkonfusion |
-| 3 | Wochen-Serie optional (`show_streak`) | Dichev & Dicheva 2017: Seriendruck |
-| 4 | Abzeichen optional (`show_badges`) | Dichev & Dicheva 2017: Gamification |
-| 5 | Altersgruppen pro Kind | Altersgerechte Einschätzung |
-| 6 | Hinweis bei negativen Punkten | SDT: Bestrafung schadet Beziehung |
-| 7 | Gemeinsame Wünsche (`require_all`) | Johnson & Johnson: positive Interdependenz |
-| 8 | Punkte-Zeitachse überlappungsfrei | UX: Klarheit statt Verwirrung |
-| 9 | Bestätigung vor allen Löschvorgängen | Schutz vor Impulsaktionen |
-| 10 | Signal/Threema als Benachrichtigungskanäle | Datenschutz als Erziehungswert |
-| 11 | „Serie" statt „Streak" | Keine Fremdwörter in der Oberfläche |
-
----
-
-## Bekannte Abweichungen vom Forschungsideal
-
-| Abweichung | Begründung | Empfehlung |
-|---|---|---|
-| Punkte für Haushaltspflichten *möglich* | Einstiegshilfe für schwierige Phasen | Schrittweise auf 0 zurückführen |
-| Zinssatz ohne Obergrenze | Technische Freiheit | Familie selbst auf 0,5–2 % begrenzen |
-| Keine Begleit-Erklärungen in der App | Komplexitätsreduktion | Gespräche in der Familie unverzichtbar |
-| Serie standardmässig aktiv | Optik und Motivation | Für Jüngere (<10 J.) deaktivieren |
-| Kein physischer Geldbezug | Rein digital | Parallel Bargeld einsetzen (bis ca. 10 J.) |
-
----
-
-## Literatur
-
-### Peer-reviewed Forschungsartikel
-
-- Deci, E. L., & Ryan, R. M. (1985). *Intrinsic Motivation and Self-Determination in Human Behavior.* Plenum Press.
-- Deci, E. L., Koestner, R., & Ryan, R. M. (1999). A meta-analytic review of experiments examining the effects of extrinsic rewards on intrinsic motivation. *Psychological Bulletin, 125*(6), 627–668. https://doi.org/10.1037/0033-2909.125.6.627
-- Deci, E. L., Koestner, R., & Ryan, R. M. (2001). Extrinsic rewards and intrinsic motivation in education: Reconsidered once again. *Review of Educational Research, 71*(1), 1–27.
-- Lepper, M. R., Greene, D., & Nisbett, R. E. (1973). Undermining children's intrinsic interest with extrinsic reward. *Journal of Personality and Social Psychology, 28*(1), 129–137.
-- Gneezy, U., & Rustichini, A. (2000). A fine is a price. *Journal of Legal Studies, 29*(1), 1–17.
-- Watts, T. W., Duncan, G. J., & Quan, H. (2018). Revisiting the marshmallow test: A conceptual replication investigating links between early delay of gratification and later outcomes. *Psychological Science, 29*(7), 1159–1177. https://doi.org/10.1177/0956797618761661
-- Choi, J., Johnson, D. W., & Johnson, R. (2011). Relationship among cooperative learning experiences, social interdependence, children's aggression, victimization, and prosocial behaviors. *Journal of Applied Social Psychology, 41*(4), 976–1003.
-- Dichev, C., & Dicheva, D. (2017). Gamifying education: What is known, what is believed and what remains uncertain. *International Journal of Educational Technology in Higher Education, 14*(1), 42. https://doi.org/10.1186/s41239-017-0042-5
-- Garyn-Tal, S. (2024). Giving children pocket money to help them understand economic principles. *International Social Science Journal, 74*, 1033–1048. https://doi.org/10.1111/issj.12494
-- Grolnick, W. S., & Pomerantz, E. M. (2009). Issues and challenges in studying parental control: Toward a new conceptualization. *Child Development Perspectives, 3*(3), 165–170.
-- Oosterbeek, H., Sloof, R., & van de Kuilen, G. (2004). Cultural differences in ultimatum game experiments. *Experimental Economics, 7*(2), 171–188.
-- Pink, D. H. (2009). *Drive: The Surprising Truth About What Motivates Us.* Riverhead Books.
-
-### Berichte und offizielle Empfehlungen
-
-- Money and Pensions Service (UK). (2024). *Literature review: The impact of digital money on children and young people's financial education.* https://maps.org.uk/en/publications/research/2024/the-impact-of-digital-money-on-children-and-young-people
-- Pro Juventute Schweiz. (2023). *Taschengeld: Empfehlungen für Eltern.* https://www.projuventute.ch/de/eltern/familie-gesellschaft/taschengeld
-- Federal Reserve Education. (o. J.). *A Yen to Trade.* https://www.stlouisfed.org/education/a-yen-to-trade-unit
-- Johnson, D. W., & Johnson, R. T. (2009). An educational psychology success story: Social interdependence theory and cooperative learning. *Educational Researcher, 38*(5), 365–379.
-- *Spendception: The psychological impact of digital payments on consumer purchase behavior and impulse buying.* (2025). *Behavioral Sciences, 15*(3), 387. https://doi.org/10.3390/bs15030387
+### Unternehmertum / Flohmarkt
+- [MDPI — Financial Literacy and Gen Z's Entrepreneurship Interest (2025)](https://www.mdpi.com/2227-7072/13/3/171)
+- [The Money Advantage — Financial Literacy for Gen Z: Game-Based Learning](https://themoneyadvantage.com/financial-literacy-for-gen-z/)

@@ -25,12 +25,12 @@ export default function PointsPage({ childId }) {
   const [freeAward, setFreeAward] = useState({ delta: '', description: '' });
   const [deduct, setDeduct] = useState({ points: '5', reason: '' });
 
+  // Neutrale Korrektur-Gründe statt Verhaltensstrafen (Empfehlung: Punktabzug nicht als Strafe,
+  // sondern nur für sachliche Korrekturen — Gespräche sind wirksamer als Punktentzug)
   const DEDUCT_PRESETS = [
-    'TV/Tablet-Zeit überschritten',
-    'Aufforderungen nicht nachgekommen',
-    'Vereinbarung gebrochen',
-    'Unehrlichkeit',
-    'Geschwister geärgert',
+    'Korrektur: Job-Punkte zu viel vergeben',
+    'Korrektur: Aufgabe war doch nicht erledigt',
+    'Korrektur: Punkte-Übertrag rückgängig',
   ];
 
   useEffect(() => {
@@ -202,11 +202,24 @@ export default function PointsPage({ childId }) {
                 </div>
               )}
             </div>
-            {showStreak && (history.summary?.streak_weeks || 0) > 0 && (
+            {showStreak && (
               <div className="text-center">
-                <div style={{ fontSize: '2rem' }}>🔥</div>
-                <div className="font-bold">{history.summary.streak_weeks}</div>
-                <div className="text-sm text-muted">Wochen Serie</div>
+                {(history.summary?.streak_weeks || 0) > 0 ? (
+                  <>
+                    <div style={{ fontSize: '2rem' }}>🔥</div>
+                    <div className="font-bold">{history.summary.streak_weeks}</div>
+                    <div className="text-sm text-muted">Wochen Serie</div>
+                    {(history.summary?.streak_freeze ?? 1) > 0 && (
+                      <div style={{ fontSize: '0.68rem', color: '#6366f1', marginTop: 2 }} title="Falls du mal eine Woche aussetzt, rettet dieser Freeze deinen Streak automatisch.">
+                        🛡️ Freeze verfügbar
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', maxWidth: 90 }}>
+                    Erledige diese Woche einen Job — dann startet deine Serie!
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -309,6 +322,13 @@ export default function PointsPage({ childId }) {
             onChange={e => setNewJob(j => ({ ...j, name: e.target.value }))} />
           <input type="number" placeholder={newJob.job_type === 'duty' ? 'Punkte (0 = nur bestätigen)' : 'Punkte (z.B. 10)'} value={newJob.points}
             onChange={e => setNewJob(j => ({ ...j, points: e.target.value }))} />
+          {newJob.job_type === 'duty' && Number(newJob.points) > 0 && (
+            <div style={{ background: '#fefce8', borderRadius: 8, padding: '8px 10px', fontSize: '0.78rem', color: '#854d0e', lineHeight: 1.5 }}>
+              ⚠️ <strong>Hinweis:</strong> Basis-Haushaltspflichten ohne Punkte fördern Verantwortungsgefühl besser.
+              Punkte für Pflichten können dazu führen, dass Kinder nur noch für Belohnungen helfen
+              (<em>Korrumpierungseffekt</em> nach Deci & Ryan). Punkte eignen sich eher für freiwillige Extra-Jobs.
+            </div>
+          )}
           <select value={newJob.recurrence} onChange={e => setNewJob(j => ({ ...j, recurrence: e.target.value }))}>
             <option value="manual">Manuell (bei Bedarf)</option>
             <option value="daily">Täglich</option>
@@ -358,13 +378,15 @@ export default function PointsPage({ childId }) {
         })()}
       </Modal>
 
-      <Modal open={deductModal} title="⚠️ Punkte abziehen" onClose={() => setDeductModal(false)}>
+      <Modal open={deductModal} title="🔧 Punkte korrigieren" onClose={() => setDeductModal(false)}>
         <div className="flex flex-col gap-3">
-          <div style={{ background: '#fff1f2', borderRadius: 10, padding: '10px 12px', fontSize: '0.82rem', color: '#be123c' }}>
-            Abzüge sollten immer mit einem Gespräch verbunden sein — nicht als automatische Strafe.
+          <div style={{ background: '#fefce8', borderRadius: 10, padding: '10px 12px', fontSize: '0.82rem', color: '#854d0e', lineHeight: 1.5 }}>
+            <strong>Pädagogischer Hinweis:</strong> Punktabzug als Verhaltensstrafe kann die innere Motivation
+            von Kindern langfristig schwächen (<em>Korrumpierungseffekt</em>). Empfehlung: Nur für sachliche
+            Korrekturen verwenden — Fehlverhalten besser im Gespräch thematisieren.
           </div>
           <div>
-            <div className="text-sm font-semibold mb-2">Grund (Schnellauswahl)</div>
+            <div className="text-sm font-semibold mb-2">Korrektur-Grund (Schnellauswahl)</div>
             <div className="flex flex-col gap-1">
               {DEDUCT_PRESETS.map(p => (
                 <button key={p}
@@ -386,9 +408,9 @@ export default function PointsPage({ childId }) {
               <span className="font-bold" style={{ color: '#be123c', minWidth: 40 }}>−{deduct.points}</span>
             </div>
           </div>
-          <button style={{ background: '#be123c', color: '#fff', borderRadius: 12, padding: '12px', fontWeight: 700, fontSize: '0.95rem' }}
+          <button style={{ background: '#92400e', color: '#fff', borderRadius: 12, padding: '12px', fontWeight: 700, fontSize: '0.95rem' }}
             onClick={doDeduct}>
-            Abzug bestätigen
+            Korrektur speichern
           </button>
         </div>
       </Modal>
@@ -413,6 +435,13 @@ export default function PointsPage({ childId }) {
             <input type="number" placeholder={editJob.job_type === 'duty' ? 'Punkte (0 = nur bestätigen)' : 'Punkte'}
               value={editJob.points}
               onChange={e => setEditJob(j => ({ ...j, points: e.target.value }))} />
+            {editJob.job_type === 'duty' && Number(editJob.points) > 0 && (
+              <div style={{ background: '#fefce8', borderRadius: 8, padding: '8px 10px', fontSize: '0.78rem', color: '#854d0e', lineHeight: 1.5 }}>
+                ⚠️ <strong>Hinweis:</strong> Basis-Haushaltspflichten ohne Punkte fördern Verantwortungsgefühl besser.
+                Punkte für Pflichten können dazu führen, dass Kinder nur noch für Belohnungen helfen
+                (<em>Korrumpierungseffekt</em> nach Deci & Ryan).
+              </div>
+            )}
             <select value={editJob.recurrence} onChange={e => setEditJob(j => ({ ...j, recurrence: e.target.value }))}>
               <option value="manual">Manuell (bei Bedarf)</option>
               <option value="daily">Täglich</option>

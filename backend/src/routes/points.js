@@ -51,22 +51,38 @@ router.post('/award', parentOnly, (req, res) => {
     'INSERT INTO point_events (user_id,delta,description,mini_job_id) VALUES (?,?,?,?)'
   ).run(uid, delta, description, mini_job_id || null);
 
-  // Update streak
+  // Update streak (mit Freeze-Mechanismus: pädagogisch — Resilienz statt Scham bei Ausfall)
   if (mini_job_id) {
     const week = getISOWeek();
-    const p = db.prepare('SELECT last_job_week, streak_weeks FROM points WHERE user_id=?').get(uid);
+    const thisMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const p = db.prepare('SELECT last_job_week, streak_weeks, streak_freeze, streak_freeze_month FROM points WHERE user_id=?').get(uid);
     const lastWeek = getISOWeek(-1);
+    const twoWeeksAgo = getISOWeek(-2);
     let streak = p.streak_weeks;
+    let freeze = p.streak_freeze ?? 1;
+    // Freeze automatisch auffüllen wenn neuer Monat
+    if (p.streak_freeze_month !== thisMonth) freeze = 1;
+
+    let freezeUsed = false;
     if (p.last_job_week === week) {
-      // already counted this week
+      // schon diese Woche gezählt — nichts tun
     } else if (p.last_job_week === lastWeek) {
       streak += 1;
+    } else if (p.last_job_week === twoWeeksAgo && freeze > 0) {
+      // genau 1 Woche verpasst + Freeze verfügbar → Streak retten
+      streak += 1;
+      freeze -= 1;
+      freezeUsed = true;
     } else {
       streak = 1;
     }
-    db.prepare('UPDATE points SET last_job_week=?, streak_weeks=? WHERE user_id=?').run(week, streak, uid);
+    db.prepare('UPDATE points SET last_job_week=?, streak_weeks=?, streak_freeze=?, streak_freeze_month=? WHERE user_id=?')
+      .run(week, streak, freeze, thisMonth, uid);
     checkStreakBadges(uid);
     checkJobBadges(uid);
+    if (freezeUsed) {
+      sendNotification(uid, 'streak_freeze_used', { streak });
+    }
   }
 
   sendNotification(uid, 'points_received', { delta, description });
@@ -114,7 +130,7 @@ router.post('/convert', parentOnly, (req, res) => {
 router.get('/:id', (req, res) => {
   const uid = Number(req.params.id);
   if (req.user.role !== 'parent' && req.user.id !== uid) return res.status(403).json({ error: 'Forbidden' });
-  const summary = db.prepare('SELECT balance, streak_weeks FROM points WHERE user_id=?').get(uid);
+  const summary = db.prepare('SELECT balance, streak_weeks, streak_freeze FROM points WHERE user_id=?').get(uid);
   const events = db.prepare(`
     SELECT pe.*, mj.name as job_name FROM point_events pe
     LEFT JOIN mini_jobs mj ON pe.mini_job_id=mj.id

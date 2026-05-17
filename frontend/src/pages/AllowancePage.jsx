@@ -311,6 +311,16 @@ export default function AllowancePage() {
             <input type="number" placeholder="z.B. 2 für 2% pro Jahr" min="0" max="100" step="0.1"
               value={config.interest_rate}
               onChange={e => setConfig(c => ({ ...c, interest_rate: e.target.value }))} />
+            {Number(config.interest_rate) > 0 && (
+              <div style={{ fontSize: '0.75rem', marginTop: 4, lineHeight: 1.5,
+                color: Number(config.interest_rate) > 10 ? '#b45309' : '#6b7280',
+                background: Number(config.interest_rate) > 10 ? '#fefce8' : 'transparent',
+                borderRadius: 6, padding: Number(config.interest_rate) > 10 ? '4px 8px' : 0 }}>
+                {Number(config.interest_rate) > 10
+                  ? `⚠️ ${config.interest_rate}% p.a. liegt weit über realen Bankzinsen (1–3% p.a.). Für realitätsnahe Finanzerziehung empfehlen wir einen realistischeren Wert.`
+                  : `Reale Kindersparkonto-Zinsen: ca. 1–3% p.a. — dein Wert liegt im realistischen Bereich.`}
+              </div>
+            )}
           </div>
           <div>
             <label className="text-sm text-muted">Auszahlungsintervall</label>
